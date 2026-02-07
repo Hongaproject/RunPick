@@ -1,36 +1,47 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# RunPick
 
-## Getting Started
+> 러너가 직접 제작한 마라톤 일정/정보 플랫폼
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+# 개요
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+본 프로젝트는 **1인 개발 프로젝트**로, AI 도구를 활용한 학습과 실전 서비스 제작을 동시에 경험하기 위해 시작했습니다.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+개인적으로 매년 한 번씩 마라톤에 참가하고 있어 관련 정보를 자주 찾아보는데, 기존 마라톤 일정 사이트들이 다소 불편하게 느껴진 부분이 있었습니다.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+그래서 **러너의 실제 사용 경험을 기반으로 더 편리한 마라톤 사이트를 직접 만들어보자**는 생각으로 제작을 결심하게 되었습니다.
 
-## Learn More
+이 프로젝트는 단순한 연습용이 아닌, 👉 “제가 실제로 사용할 서비스” 를 목표로 개발을 진행했습니다.
 
-To learn more about Next.js, take a look at the following resources:
+# 제작 기간
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- 2026.02.07 ~ ing
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+# 기술스택
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| 분류                 | 기술 스택                              | 선정 이유                                          |
+| :------------------- | :------------------------------------- | :------------------------------------------------- |
+| **Frontend**         | **Next.js 14** (App Router)            | SEO 최적화 및 초기 로딩 속도 확보                  |
+|                      | **TypeScript**                         | 크롤링한 비정형 데이터의 타입 안정성 보장          |
+|                      | **Tailwind CSS**                       | 빠른 스타일링 및 반응형 디자인 구현                |
+|                      | **Relume**                             | 전문적인 UI 와이어프레임 및 컴포넌트 구조 설계     |
+| **State Management** | **TanStack Query** (React Query)       | 서버 상태(Server State) 관리 및 데이터 캐싱 최적화 |
+|                      | **Context API**                        | 필터(지역/날짜) 등 가벼운 클라이언트 상태 관리     |
+| **Cloud & Data**     | **AWS S3**                             | JSON 데이터 호스팅 (Serverless & 비용 절감)        |
+|                      | **Python** (Boto3)                     | 데이터 수집(Crawling) 및 S3 자동 업로드 파이프라인 |
+| **Collaboration**    | **AI Tools** (Gemini, ChatGPT, Cursor) | 정규식 패턴 분석, 타입 정의, 코드 리팩토링 보조    |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+# 폴더구조
+
+---
+
+# 트러블슈팅
+
+---
+
+# 배운점
