@@ -24,10 +24,10 @@
 
 | 분류                 | 기술 스택                              | 선정 이유                                          |
 | :------------------- | :------------------------------------- | :------------------------------------------------- |
-| **Frontend**         | **Next.js 14** (App Router)            | SEO 최적화 및 초기 로딩 속도 확보                  |
+| **Frontend**         | **Next.js** (App Router)               | SEO 최적화 및 초기 로딩 속도 확보                  |
 |                      | **TypeScript**                         | 크롤링한 비정형 데이터의 타입 안정성 보장          |
 |                      | **Tailwind CSS**                       | 빠른 스타일링 및 반응형 디자인 구현                |
-|                      | **Relume**                             | 전문적인 UI 와이어프레임 및 컴포넌트 구조 설계     |
+|                      | **Figma**                              | 전문적인 UI 와이어프레임 및 컴포넌트 구조 설계     |
 | **State Management** | **TanStack Query** (React Query)       | 서버 상태(Server State) 관리 및 데이터 캐싱 최적화 |
 |                      | **Context API**                        | 필터(지역/날짜) 등 가벼운 클라이언트 상태 관리     |
 | **Cloud & Data**     | **AWS S3**                             | JSON 데이터 호스팅 (Serverless & 비용 절감)        |
