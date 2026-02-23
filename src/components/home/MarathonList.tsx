@@ -6,7 +6,7 @@ import {
   RegistrationStatus,
 } from "../../types/marathon";
 import { FilterSidebar } from "./FilterSidebar";
-import MarathonCard from "./MarathonCard";
+import { MarathonCard } from "./MarathonCard";
 interface MarathonList {
   marathons: Marathon[];
   onSelectMarathon: (marathon: Marathon) => void;
@@ -17,7 +17,7 @@ export function MarathonList({ marathons, onSelectMarathon }: MarathonList) {
   const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
   const [selectedMonth, setSelectedMonth] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState<MarathonStatus | "all">(
-    "all",
+    "upcoming",
   );
   const [selectedRegistration, setSelectedRegistration] = useState<
     RegistrationStatus | "all"
@@ -85,7 +85,7 @@ export function MarathonList({ marathons, onSelectMarathon }: MarathonList) {
     // 정렬
     if (sortBy === "latest") {
       filtered.sort(
-        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
       );
     } else if (sortBy === "deadline") {
       // 접수 마감일이 가까운 순 (접수 중인 것만 우선)
@@ -125,7 +125,7 @@ export function MarathonList({ marathons, onSelectMarathon }: MarathonList) {
     setSearchQuery("");
     setSelectedRegions([]);
     setSelectedMonth("all");
-    setSelectedStatus("all");
+    setSelectedStatus("upcoming");
     setSelectedRegistration("all");
     setSelectedDistance("all");
   };
