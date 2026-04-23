@@ -1,6 +1,5 @@
 // 1. 아까 파이썬으로 뽑아낸 원본 JSON 파일을 임포트합니다.
-// (경로는 질문자님의 실제 파일 위치에 맞게 수정하세요)
-import rawData from "../../public/marathon_data.json";
+import rawData from "../data/marathon_data.json";
 import {
   Marathon,
   MarathonStatus,
