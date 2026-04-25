@@ -7,6 +7,7 @@ import {
 } from "../../types/marathon";
 import { FilterSidebar } from "./FilterSidebar";
 import { MarathonCard } from "./MarathonCard";
+import { SearchBar } from "./SearchBar";
 interface MarathonList {
   marathons: Marathon[];
   onSelectMarathon: (marathon: Marathon) => void;
@@ -162,6 +163,16 @@ export function MarathonList({ marathons, onSelectMarathon }: MarathonList) {
 
       {/* 메인 컨텐츠 */}
       <div className="flex-1 flex flex-col">
+        <SearchBar
+          searchQuery={searchQuery}
+          onSearchChange={(query) =>
+            handleFilterChange(() => setSearchQuery(query))
+          }
+          onFilterClick={() => setIsMobileFilterOpen(true)}
+          sortBy={sortBy}
+          onSortChange={(sort) => handleFilterChange(() => setSortBy(sort))}
+          totalCount={filteredAndSortedMarathons.length}
+        />
         <div className="flex-1 px-4 sm:px-6 lg:px-8 py-8">
           {filteredAndSortedMarathons.length === 0 ? (
             <div className="text-center py-20">

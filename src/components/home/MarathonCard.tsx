@@ -64,34 +64,30 @@ export function MarathonCard({ marathon, onClick }: MarathonCardProps) {
       onClick={onClick}
       className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-xl hover:scale-[1.02] transition-all duration-300 cursor-pointer group"
     >
-      <div className="relative h-56 bg-gradient-to-br from-blue-500 to-purple-600 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-
-        {/* 상단 배지 */}
-        <div className="absolute top-3 left-3 flex gap-2 flex-wrap">
-          <span
-            className={`px-3 py-1 rounded-full text-xs font-medium border backdrop-blur-sm ${statusColors[marathon.status]}`}
-          >
-            {statusLabels[marathon.status]}
-          </span>
-          <span
-            className={`px-3 py-1 rounded-full text-xs font-medium border backdrop-blur-sm ${registrationColors[marathon.registrationStatus]}`}
-          >
-            {registrationLabels[marathon.registrationStatus]}
-          </span>
-        </div>
-
-        {/* D-day 표시 */}
-        <div className="absolute top-3 right-3">
-          <div className="bg-white/95 backdrop-blur-sm px-4 py-2 rounded-full">
+      <div className="p-5">
+        {/* 상단 배지 및 D-day */}
+        <div className="flex items-center justify-between gap-2 mb-4">
+          <div className="flex gap-2 flex-wrap">
+            <span
+              className={`px-3 py-1 rounded-full text-xs font-medium border ${statusColors[marathon.status]}`}
+            >
+              {statusLabels[marathon.status]}
+            </span>
+            <span
+              className={`px-3 py-1 rounded-full text-xs font-medium border ${registrationColors[marathon.registrationStatus]}`}
+            >
+              {registrationLabels[marathon.registrationStatus]}
+            </span>
+          </div>
+          <div className="bg-gray-100 px-4 py-2 rounded-full flex-shrink-0">
             <span className="text-sm font-bold text-gray-900">{dday}</span>
           </div>
         </div>
 
         {/* 접수 마감 임박 알림 */}
         {registrationDaysLeft && marathon.registrationStatus === "open" && (
-          <div className="absolute bottom-3 left-3 right-3">
-            <div className="bg-red-500 text-white px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2 animate-pulse">
+          <div className="mb-4">
+            <div className="bg-red-500 text-white px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2">
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                 <path
                   fillRule="evenodd"
@@ -103,9 +99,6 @@ export function MarathonCard({ marathon, onClick }: MarathonCardProps) {
             </div>
           </div>
         )}
-      </div>
-
-      <div className="p-5">
         <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors line-clamp-1">
           {marathon.name}
         </h3>
