@@ -1,32 +1,40 @@
 "use client";
 
 import { Flag, Menu, X } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
+import { useMarathon } from "@/context/MarathonContext";
 
 export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { setSelectedMarathon } = useMarathon();
 
   const menuItems = [
     { label: "대회목록", href: "#marathons" },
     { label: "문의", href: "#contact" },
   ];
 
+  const handleLogoClick = () => {
+    setSelectedMarathon(null);
+  };
+
   return (
     <header className="bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg sticky top-0 z-30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between py-4">
-          {/* 로고 */}
-          <div className="flex items-center gap-3">
-            <div className="bg-white/20 p-2.5 rounded-xl backdrop-blur-sm">
-              <Flag className="w-7 h-7" />
+          <Link href="/" onClick={handleLogoClick}>
+            <div className="flex items-center gap-3">
+              <div className="bg-white/20 p-2.5 rounded-xl backdrop-blur-sm">
+                <Flag className="w-7 h-7" />
+              </div>
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold">RunPick</h1>
+                <p className="text-blue-100 text-sm mt-0.5 hidden sm:block">
+                  전국 마라톤 대회 정보 플랫폼
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold">RunPick</h1>
-              <p className="text-blue-100 text-sm mt-0.5 hidden sm:block">
-                전국 마라톤 대회 정보 플랫폼
-              </p>
-            </div>
-          </div>
+          </Link>
 
           {/* 데스크톱 메뉴 */}
           <nav className="hidden md:flex items-center gap-6">

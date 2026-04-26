@@ -2,14 +2,13 @@ import {
   ArrowLeft,
   Calendar,
   MapPin,
-  Users,
   Tag,
   ExternalLink,
   Share2,
   Clock,
   Award,
   Info,
-  CheckCircle2,
+  AlertCircle,
 } from "lucide-react";
 import { Marathon } from "../../types/marathon";
 
@@ -43,9 +42,20 @@ const registrationColors = {
 };
 
 export function MarathonDetail({ marathon, onBack }: MarathonDetailProps) {
-  const participationRate = Math.round(
-    (marathon.currentParticipants / marathon.maxParticipants) * 100,
-  );
+  // D-day 계산
+  const getDday = () => {
+    const today = new Date("2026-02-07");
+    const eventDate = new Date(marathon.date);
+    const diffTime = eventDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) return { text: "종료", color: "text-gray-600" };
+    if (diffDays === 0) return { text: "D-Day", color: "text-red-600" };
+    if (diffDays <= 7) return { text: `D-${diffDays}`, color: "text-red-600" };
+    return { text: `D-${diffDays}`, color: "text-blue-600" };
+  };
+
+  const dday = getDday();
 
   const handleShare = async () => {
     const shareData = {
@@ -61,7 +71,6 @@ export function MarathonDetail({ marathon, onBack }: MarathonDetailProps) {
         console.log("공유 취소됨");
       }
     } else {
-      // Fallback: 클립보드에 복사
       navigator.clipboard.writeText(window.location.href);
       alert("링크가 클립보드에 복사되었습니다!");
     }
@@ -69,20 +78,24 @@ export function MarathonDetail({ marathon, onBack }: MarathonDetailProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* 헤더 */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      {/* 고정 헤더 */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-20 shadow-sm">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center gap-4">
             <button
               onClick={onBack}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+              aria-label="뒤로 가기"
             >
               <ArrowLeft className="w-6 h-6" />
             </button>
-            <h1 className="text-xl font-bold flex-1">대회 상세 정보</h1>
+            <h1 className="text-xl font-bold flex-1 truncate">
+              대회 상세 정보
+            </h1>
             <button
               onClick={handleShare}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+              aria-label="공유하기"
             >
               <Share2 className="w-6 h-6" />
             </button>
@@ -90,176 +103,223 @@ export function MarathonDetail({ marathon, onBack }: MarathonDetailProps) {
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* 메인 이미지 */}
-        <div className="relative h-64 sm:h-80 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl overflow-hidden mb-8">
-          <div className="absolute inset-0 bg-black/20" />
-          <div className="absolute top-4 left-4 flex gap-2">
-            <span
-              className={`px-4 py-2 rounded-full text-sm font-medium border ${statusColors[marathon.status]}`}
-            >
-              {statusLabels[marathon.status]}
-            </span>
-            <span
-              className={`px-4 py-2 rounded-full text-sm font-medium border ${registrationColors[marathon.registrationStatus]}`}
-            >
-              {registrationLabels[marathon.registrationStatus]}
-            </span>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* 대회 헤더 섹션 */}
+        <div className="bg-gradient-to-br from-blue-600 to-purple-600 rounded-3xl overflow-hidden mb-8 shadow-xl p-8 sm:p-10">
+          {/* 배지 및 D-day */}
+          <div className="flex items-start justify-between gap-4 mb-6">
+            <div className="flex gap-3 flex-wrap">
+              <span
+                className={`px-4 py-2 rounded-full text-sm font-bold border-2 backdrop-blur-md ${statusColors[marathon.status]}`}
+              >
+                {statusLabels[marathon.status]}
+              </span>
+              <span
+                className={`px-4 py-2 rounded-full text-sm font-bold border-2 backdrop-blur-md ${registrationColors[marathon.registrationStatus]}`}
+              >
+                {registrationLabels[marathon.registrationStatus]}
+              </span>
+            </div>
+            <div className="bg-white/95 backdrop-blur-md px-6 py-3 rounded-full shadow-lg flex-shrink-0">
+              <span className={`text-2xl font-black ${dday.color}`}>
+                {dday.text}
+              </span>
+            </div>
           </div>
-        </div>
 
-        {/* 대회명 */}
-        <div className="bg-white rounded-2xl p-6 sm:p-8 mb-6 shadow-sm">
-          <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+          {/* 대회명 */}
+          <h2 className="text-3xl sm:text-5xl font-black text-white">
             {marathon.name}
           </h2>
-          <p className="text-lg text-gray-600">{marathon.description}</p>
         </div>
 
-        {/* 기본 정보 */}
-        <div className="bg-white rounded-2xl p-6 sm:p-8 mb-6 shadow-sm">
-          <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-            <Info className="w-6 h-6 text-blue-600" />
-            기본 정보
-          </h3>
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* 왼쪽: 주요 정보 */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* 핵심 정보 카드 */}
+            <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100">
+              <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                <Info className="w-7 h-7 text-blue-600" />
+                핵심 정보
+              </h3>
 
-          <div className="space-y-4">
-            <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg">
-              <Calendar className="w-6 h-6 text-blue-600 flex-shrink-0 mt-1" />
-              <div>
-                <div className="font-medium text-gray-900 mb-1">대회 일시</div>
-                <div className="text-gray-600">
-                  {new Date(marathon.date).toLocaleDateString("ko-KR", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                    weekday: "long",
-                  })}
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="flex items-start gap-4 p-5 bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-xl border border-blue-200">
+                  <div className="bg-blue-600 p-3 rounded-xl">
+                    <Calendar className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-sm font-medium text-blue-900 mb-1">
+                      대회 일시
+                    </div>
+                    <div className="font-bold text-gray-900">
+                      {new Date(marathon.date).toLocaleDateString("ko-KR", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })}
+                    </div>
+                    <div className="text-sm text-gray-600 mt-1">
+                      {new Date(marathon.date).toLocaleDateString("ko-KR", {
+                        weekday: "long",
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4 p-5 bg-gradient-to-br from-red-50 to-red-100/50 rounded-xl border border-red-200">
+                  <div className="bg-red-600 p-3 rounded-xl">
+                    <MapPin className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-sm font-medium text-red-900 mb-1">
+                      장소
+                    </div>
+                    <div className="font-bold text-gray-900">
+                      {marathon.location}
+                    </div>
+                    <div className="text-sm text-gray-600 mt-1">
+                      {marathon.region}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4 p-5 bg-gradient-to-br from-green-50 to-green-100/50 rounded-xl border border-green-200 sm:col-span-2">
+                  <div className="bg-green-600 p-3 rounded-xl">
+                    <Clock className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-sm font-medium text-green-900 mb-1">
+                      접수 기간
+                    </div>
+                    <div className="font-bold text-gray-900 text-sm">
+                      {new Date(marathon.registrationStart).toLocaleDateString(
+                        "ko-KR",
+                        { month: "short", day: "numeric" },
+                      )}
+                      {" ~ "}
+                      {new Date(marathon.registrationEnd).toLocaleDateString(
+                        "ko-KR",
+                        { month: "short", day: "numeric" },
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg">
-              <MapPin className="w-6 h-6 text-red-600 flex-shrink-0 mt-1" />
-              <div>
-                <div className="font-medium text-gray-900 mb-1">장소</div>
-                <div className="text-gray-600">{marathon.location}</div>
-                <div className="text-sm text-gray-500">{marathon.region}</div>
-              </div>
-            </div>
+            {/* 종목 및 참가비 */}
+            <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100">
+              <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                <Tag className="w-7 h-7 text-blue-600" />
+                종목 및 참가비
+              </h3>
 
-            <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg">
-              <Clock className="w-6 h-6 text-green-600 flex-shrink-0 mt-1" />
-              <div>
-                <div className="font-medium text-gray-900 mb-1">접수 기간</div>
-                <div className="text-gray-600">
-                  {new Date(marathon.registrationStart).toLocaleDateString(
-                    "ko-KR",
-                  )}{" "}
-                  ~{" "}
-                  {new Date(marathon.registrationEnd).toLocaleDateString(
-                    "ko-KR",
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg">
-              <Users className="w-6 h-6 text-purple-600 flex-shrink-0 mt-1" />
-              <div className="flex-1">
-                <div className="font-medium text-gray-900 mb-2">참가 인원</div>
-                <div className="text-gray-600 mb-3">
-                  {marathon.currentParticipants.toLocaleString()} /{" "}
-                  {marathon.maxParticipants.toLocaleString()}명 (
-                  {participationRate}%)
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+              <div className="grid sm:grid-cols-2 gap-4">
+                {marathon.distances.map((distance) => (
                   <div
-                    className="bg-gradient-to-r from-blue-500 to-purple-500 h-full rounded-full transition-all duration-500"
-                    style={{ width: `${participationRate}%` }}
-                  />
+                    key={distance}
+                    className="group relative overflow-hidden border-2 border-gray-200 rounded-2xl p-6 hover:border-blue-500 hover:shadow-lg transition-all duration-300"
+                  >
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-bl-full -mr-8 -mt-8" />
+                    <div className="relative">
+                      <div className="inline-block px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full text-sm font-bold mb-3">
+                        {distance}
+                      </div>
+                      <div className="text-3xl font-black text-gray-900 mb-1">
+                        {marathon.entryFee[distance]?.toLocaleString()}
+                        <span className="text-lg text-gray-600 ml-1">원</span>
+                      </div>
+                      <div className="text-sm text-gray-500">참가비</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* 오른쪽: 사이드바 */}
+          <div className="space-y-6">
+            {/* 신청 CTA */}
+            <div className="bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl p-6 text-white shadow-xl sticky top-24">
+              <h3 className="text-xl font-bold mb-4">참가 신청</h3>
+              <div className="space-y-4">
+                <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4">
+                  <div className="text-sm text-white/80 mb-1">
+                    접수 마감까지
+                  </div>
+                  <div className="text-2xl font-black">
+                    {Math.ceil(
+                      (new Date(marathon.registrationEnd).getTime() -
+                        new Date("2026-02-07").getTime()) /
+                        (1000 * 60 * 60 * 24),
+                    )}
+                    일 남음
+                  </div>
+                </div>
+
+                <a
+                  href={marathon.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block w-full bg-white text-blue-600 py-4 px-6 rounded-xl font-bold text-center hover:bg-blue-50 transition-colors shadow-lg hover:shadow-xl flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  공식 홈페이지에서 신청
+                  <ExternalLink className="w-5 h-5" />
+                </a>
+
+                <button
+                  onClick={handleShare}
+                  className="w-full bg-white/20 backdrop-blur-sm text-white py-3 px-6 rounded-xl font-medium hover:bg-white/30 transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Share2 className="w-5 h-5" />
+                  친구에게 공유하기
+                </button>
+              </div>
+            </div>
+
+            {/* 주최자 정보 */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+              <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <Award className="w-6 h-6 text-orange-600" />
+                주최자 정보
+              </h3>
+
+              <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
+                <div className="bg-orange-100 p-3 rounded-lg">
+                  <Award className="w-6 h-6 text-orange-600" />
+                </div>
+                <div>
+                  <div className="text-xs text-gray-500 mb-1">주최</div>
+                  <div className="font-bold text-gray-900 text-lg">
+                    {marathon.organizer}
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg">
-              <Award className="w-6 h-6 text-orange-600 flex-shrink-0 mt-1" />
-              <div>
-                <div className="font-medium text-gray-900 mb-1">주최</div>
-                <div className="text-gray-600">{marathon.organizer}</div>
-              </div>
+            {/* 안내 사항 */}
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6">
+              <h4 className="font-bold text-amber-900 mb-3 flex items-center gap-2">
+                <AlertCircle className="w-5 h-5" />
+                안내사항
+              </h4>
+              <ul className="space-y-2 text-sm text-amber-800">
+                <li className="flex gap-2">
+                  <span className="text-amber-600">•</span>
+                  <span>참가 신청은 공식 홈페이지에서 진행됩니다</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-amber-600">•</span>
+                  <span>참가비는 환불 정책에 따라 처리됩니다</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-amber-600">•</span>
+                  <span>기상 악화 시 일정이 변경될 수 있습니다</span>
+                </li>
+              </ul>
             </div>
           </div>
-        </div>
-
-        {/* 종목 및 참가비 */}
-        <div className="bg-white rounded-2xl p-6 sm:p-8 mb-6 shadow-sm">
-          <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-            <Tag className="w-6 h-6 text-blue-600" />
-            종목 및 참가비
-          </h3>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {marathon.distances.map((distance) => (
-              <div
-                key={distance}
-                className="border-2 border-gray-200 rounded-xl p-4 hover:border-blue-500 transition-colors"
-              >
-                <div className="text-lg font-bold text-gray-900 mb-2">
-                  {distance}
-                </div>
-                <div className="text-2xl font-bold text-blue-600">
-                  {marathon.entryFee[distance]?.toLocaleString()}원
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* 코스 정보 */}
-        <div className="bg-white rounded-2xl p-6 sm:p-8 mb-6 shadow-sm">
-          <h3 className="text-xl font-bold text-gray-900 mb-4">코스 정보</h3>
-          <p className="text-gray-600">{marathon.course}</p>
-        </div>
-
-        {/* 혜택 */}
-        <div className="bg-white rounded-2xl p-6 sm:p-8 mb-6 shadow-sm">
-          <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-            <CheckCircle2 className="w-6 h-6 text-green-600" />
-            참가 혜택
-          </h3>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {marathon.benefits.map((benefit, index) => (
-              <div
-                key={index}
-                className="flex items-center gap-3 p-3 bg-green-50 rounded-lg"
-              >
-                <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
-                <span className="text-gray-700">{benefit}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* 액션 버튼 */}
-        <div className="flex flex-col sm:flex-row gap-4">
-          <a
-            href={marathon.website}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-1 bg-blue-600 text-white py-4 px-6 rounded-xl font-bold text-center hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
-          >
-            공식 홈페이지 방문
-            <ExternalLink className="w-5 h-5" />
-          </a>
-          <button
-            onClick={handleShare}
-            className="sm:w-auto bg-gray-100 text-gray-700 py-4 px-6 rounded-xl font-bold hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
-          >
-            <Share2 className="w-5 h-5" />
-            공유하기
-          </button>
         </div>
       </div>
     </div>

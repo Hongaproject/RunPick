@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Footer } from "@/components/common/Footer";
 import Header from "@/components/common/Header";
+import { MarathonProvider } from "@/context/MarathonContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,16 +30,18 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <div className="flex flex-col min-h-screen">
-          {/* 1. 헤더 (고정) */}
-          <Header />
+        <MarathonProvider>
+          <div className="flex flex-col min-h-screen">
+            {/* 1. 헤더 (고정) */}
+            <Header />
 
-          {/* 2. 메인 콘텐츠 (남은 공간 다 차지하기: flex-grow) */}
-          <main className="flex-grow bg-gray-50">{children}</main>
+            {/* 2. 메인 콘텐츠 (남은 공간 다 차지하기: flex-grow) */}
+            <main className="flex-grow bg-gray-50">{children}</main>
 
-          {/* 3. 푸터 (바닥) */}
-          <Footer />
-        </div>
+            {/* 3. 푸터 (바닥) */}
+            <Footer />
+          </div>
+        </MarathonProvider>
       </body>
     </html>
   );
