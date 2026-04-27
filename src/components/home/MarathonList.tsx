@@ -132,7 +132,7 @@ export function MarathonList({ marathons, onSelectMarathon }: MarathonList) {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
       {/* 필터 사이드바 */}
       <FilterSidebar
         marathons={marathons}
@@ -162,7 +162,7 @@ export function MarathonList({ marathons, onSelectMarathon }: MarathonList) {
       />
 
       {/* 메인 컨텐츠 */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col overflow-hidden">
         <SearchBar
           searchQuery={searchQuery}
           onSearchChange={(query) =>
@@ -173,7 +173,7 @@ export function MarathonList({ marathons, onSelectMarathon }: MarathonList) {
           onSortChange={(sort) => handleFilterChange(() => setSortBy(sort))}
           totalCount={filteredAndSortedMarathons.length}
         />
-        <div className="flex-1 px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex-1 px-4 sm:px-6 lg:px-8 py-8 overflow-y-auto">
           {filteredAndSortedMarathons.length === 0 ? (
             <div className="text-center py-20">
               <div className="inline-flex items-center justify-center w-20 h-20 bg-gray-100 rounded-full mb-6">
