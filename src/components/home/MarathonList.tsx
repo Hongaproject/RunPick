@@ -8,6 +8,7 @@ import {
 import { FilterSidebar } from "./FilterSidebar";
 import { MarathonCard } from "./MarathonCard";
 import { SearchBar } from "./SearchBar";
+import { Footer } from "../common/Footer";
 interface MarathonList {
   marathons: Marathon[];
   onSelectMarathon: (marathon: Marathon) => void;
@@ -132,8 +133,9 @@ export function MarathonList({ marathons, onSelectMarathon }: MarathonList) {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
-      {/* 필터 사이드바 */}
+    // 전체 컨테이너: 부모의 높이(h-full)를 꽉 채우고 배경색 지정
+    <div className="flex h-full bg-gray-50">
+      {/* 1. 필터 사이드바 (왼쪽에 고정) */}
       <FilterSidebar
         marathons={marathons}
         selectedRegions={selectedRegions}
@@ -161,8 +163,9 @@ export function MarathonList({ marathons, onSelectMarathon }: MarathonList) {
         onReset={handleReset}
       />
 
-      {/* 메인 컨텐츠 */}
+      {/* 2. 메인 컨텐츠 영역 (서치바 + 리스트) */}
       <div className="flex-1 flex flex-col overflow-hidden">
+        {/* ✨ 서치바 (스크롤 영역 바깥에 있으므로 항상 상단에 고정됨) */}
         <SearchBar
           searchQuery={searchQuery}
           onSearchChange={(query) =>
@@ -173,40 +176,41 @@ export function MarathonList({ marathons, onSelectMarathon }: MarathonList) {
           onSortChange={(sort) => handleFilterChange(() => setSortBy(sort))}
           totalCount={filteredAndSortedMarathons.length}
         />
-        <div className="flex-1 px-4 sm:px-6 lg:px-8 py-8 overflow-y-auto">
-          {filteredAndSortedMarathons.length === 0 ? (
-            <div className="text-center py-20">
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-gray-100 rounded-full mb-6">
-                <svg
-                  className="w-10 h-10 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+
+        {/* ✨ 리스트 영역 (여기에만 overflow-y-auto를 주어 내부 스크롤 생성) */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="px-4 sm:px-6 lg:px-8 py-8">
+            {filteredAndSortedMarathons.length === 0 ? (
+              <div className="text-center py-20">
+                <div className="inline-flex items-center justify-center w-20 h-20 bg-gray-100 rounded-full mb-6">
+                  <svg
+                    className="w-10 h-10 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M12 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                  검색 결과가 없습니다
+                </h3>
+                <p className="text-gray-600 mb-6">
+                  다른 검색어나 필터를 시도해보세요.
+                </p>
+                <button
+                  onClick={handleReset}
+                  className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M12 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
+                  필터 초기화
+                </button>
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">
-                검색 결과가 없습니다
-              </h3>
-              <p className="text-gray-600 mb-6">
-                다른 검색어나 필터를 시도해보세요.
-              </p>
-              <button
-                onClick={handleReset}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
-              >
-                필터 초기화
-              </button>
-            </div>
-          ) : (
-            <>
-              {/* 대회 카드 그리드 */}
+            ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
                 {filteredAndSortedMarathons.map((marathon) => (
                   <MarathonCard
@@ -216,8 +220,11 @@ export function MarathonList({ marathons, onSelectMarathon }: MarathonList) {
                   />
                 ))}
               </div>
-            </>
-          )}
+            )}
+          </div>
+
+          {/* ✨ 리스트가 끝나는 맨 아랫부분에 Footer 컴포넌트 추가 */}
+          <Footer />
         </div>
       </div>
     </div>

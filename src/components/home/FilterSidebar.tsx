@@ -293,7 +293,7 @@ export function FilterSidebar({
   return (
     <>
       {/* 데스크톱 사이드바 */}
-      <aside className="hidden lg:block w-80 bg-white border-r border-gray-200 sticky top-0 h-screen">
+      <aside className="hidden lg:block w-80 bg-white border-r border-gray-200 h-full flex-shrink-0">
         {sidebarContent}
       </aside>
 

@@ -9,7 +9,7 @@ export default function Home() {
   const { selectedMarathon, setSelectedMarathon } = useMarathon();
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="flex-1 flex flex-col h-full bg-gray-50">
       {selectedMarathon ? (
         <MarathonDetail
           marathon={selectedMarathon}
