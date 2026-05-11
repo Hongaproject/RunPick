@@ -33,7 +33,7 @@ const registrationColors = {
 export function MarathonCard({ marathon, onClick }: MarathonCardProps) {
   // D-day 계산
   const getDday = () => {
-    const today = new Date("2026-02-07");
+    const today = new Date();
     const eventDate = new Date(marathon.date);
     const diffTime = eventDate.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -45,7 +45,7 @@ export function MarathonCard({ marathon, onClick }: MarathonCardProps) {
 
   // 접수 마감까지 남은 날짜
   const getRegistrationDaysLeft = () => {
-    const today = new Date("2026-02-07");
+    const today = new Date();
     const endDate = new Date(marathon.registrationEnd);
     const diffTime = endDate.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));

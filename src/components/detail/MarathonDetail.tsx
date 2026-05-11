@@ -44,7 +44,7 @@ const registrationColors = {
 export function MarathonDetail({ marathon, onBack }: MarathonDetailProps) {
   // D-day 계산
   const getDday = () => {
-    const today = new Date("2026-02-07");
+    const today = new Date();
     const eventDate = new Date(marathon.date);
     const diffTime = eventDate.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -122,7 +122,7 @@ export function MarathonDetail({ marathon, onBack }: MarathonDetailProps) {
             </div>
             <div className="bg-white/95 backdrop-blur-md px-6 py-3 rounded-full shadow-lg flex-shrink-0">
               <span className={`text-2xl font-black ${dday.color}`}>
-                {dday.text}
+                대회 시작 {dday.text}
               </span>
             </div>
           </div>
@@ -245,26 +245,56 @@ export function MarathonDetail({ marathon, onBack }: MarathonDetailProps) {
               <h3 className="text-xl font-bold mb-4">참가 신청</h3>
               <div className="space-y-4">
                 <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4">
-                  <div className="text-sm text-white/80 mb-1">
-                    접수 마감까지
-                  </div>
-                  <div className="text-2xl font-black">
-                    {Math.ceil(
-                      (new Date(marathon.registrationEnd).getTime() -
-                        new Date("2026-02-07").getTime()) /
-                        (1000 * 60 * 60 * 24),
-                    )}
-                    일 남음
-                  </div>
+                  {marathon.registrationStatus === "closed" ? (
+                    // 접수 마감 상태일 때
+                    <div className="text-xl font-black text-center py-2">
+                      접수가 마감되었습니다
+                    </div>
+                  ) : (
+                    // 접수 중이거나 접수 전일 때
+                    <>
+                      <div className="text-sm text-white/80 mb-1">
+                        {marathon.registrationStatus === "before"
+                          ? "접수 시작까지"
+                          : "접수 마감까지"}
+                      </div>
+                      <div className="text-2xl font-black">
+                        {(() => {
+                          const today = new Date(); // 하드코딩된 "2026-02-07" 대신 현재 날짜 사용
+                          const targetDate =
+                            marathon.registrationStatus === "before"
+                              ? new Date(marathon.registrationStart)
+                              : new Date(marathon.registrationEnd);
+
+                          const diffTime =
+                            targetDate.getTime() - today.getTime();
+                          const diffDays = Math.ceil(
+                            diffTime / (1000 * 60 * 60 * 24),
+                          );
+
+                          return diffDays > 0
+                            ? `${diffDays}일 남음`
+                            : "오늘 마감";
+                        })()}
+                      </div>
+                    </>
+                  )}
                 </div>
 
+                {/* 버튼 섹션 - 마감 시 스타일 변경 (선택 사항) */}
                 <a
                   href={marathon.website}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block w-full bg-white text-blue-600 py-4 px-6 rounded-xl font-bold text-center hover:bg-blue-50 transition-colors shadow-lg hover:shadow-xl flex items-center justify-center gap-2 cursor-pointer"
+                  className={`block w-full py-4 px-6 rounded-xl font-bold text-center transition-colors shadow-lg flex items-center justify-center gap-2 ${
+                    marathon.registrationStatus === "closed"
+                      ? "bg-gray-200 text-gray-500 cursor-not-allowed" // 마감 시 회색 처리
+                      : "bg-white text-blue-600 hover:bg-blue-50 cursor-pointer"
+                  }`}
                 >
-                  공식 홈페이지에서 신청
+                  {marathon.registrationStatus === "closed"
+                    ? "신청이 종료되었습니다"
+                    : "공식 홈페이지에서 신청"}
                   <ExternalLink className="w-5 h-5" />
                 </a>
 
