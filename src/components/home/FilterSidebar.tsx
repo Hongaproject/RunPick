@@ -1,23 +1,20 @@
 import { X, RotateCcw } from "lucide-react";
-import {
-  Marathon,
-  MarathonDistance,
-  MarathonStatus,
-  RegistrationStatus,
-} from "../../types/marathon";
+import { MarathonRace } from "@/types/marathon";
 
 interface FilterSidebarProps {
-  marathons: Marathon[];
+  marathons: MarathonRace[];
   selectedRegions: string[];
   onRegionChange: (regions: string[]) => void;
   selectedMonth: string;
   onMonthChange: (month: string) => void;
-  selectedStatus: MarathonStatus | "all";
-  onStatusChange: (status: MarathonStatus | "all") => void;
-  selectedRegistration: RegistrationStatus | "all";
-  onRegistrationChange: (status: RegistrationStatus | "all") => void;
-  selectedDistance: MarathonDistance | "all";
-  onDistanceChange: (distance: MarathonDistance | "all") => void;
+  selectedStatus: "all" | "upcoming" | "ongoing" | "ended";
+  onStatusChange: (status: "all" | "upcoming" | "ongoing" | "ended") => void;
+  selectedRegistration: "all" | "before" | "open" | "closed";
+  onRegistrationChange: (status: "all" | "before" | "open" | "closed") => void;
+  selectedDistance: "all" | "5K" | "10K" | "Half" | "Full" | "Ultra";
+  onDistanceChange: (
+    distance: "all" | "5K" | "10K" | "Half" | "Full" | "Ultra",
+  ) => void;
   isMobileOpen?: boolean;
   onMobileClose?: () => void;
   onReset: () => void;
@@ -54,17 +51,18 @@ const months = [
   { value: "12", label: "12월" },
 ];
 
-// 1. statuses 배열 수정
-const statuses: { value: MarathonStatus | "all"; label: string }[] = [
+const statuses: {
+  value: "all" | "upcoming" | "ongoing" | "ended";
+  label: string;
+}[] = [
   { value: "all", label: "전체" },
   { value: "upcoming", label: "시작 전" },
   { value: "ongoing", label: "진행 중" },
   { value: "ended", label: "종료" },
 ];
 
-// 2. registrationStatuses 배열 수정
 const registrationStatuses: {
-  value: RegistrationStatus | "all";
+  value: "all" | "before" | "open" | "closed";
   label: string;
 }[] = [
   { value: "all", label: "전체" },
@@ -73,8 +71,10 @@ const registrationStatuses: {
   { value: "closed", label: "접수 마감" },
 ];
 
-// 3. distances 배열 수정
-const distances: { value: MarathonDistance | "all"; label: string }[] = [
+const distances: {
+  value: "all" | "5K" | "10K" | "Half" | "Full" | "Ultra";
+  label: string;
+}[] = [
   { value: "all", label: "전체" },
   { value: "5K", label: "5K" },
   { value: "10K", label: "10K" },
@@ -82,6 +82,46 @@ const distances: { value: MarathonDistance | "all"; label: string }[] = [
   { value: "Full", label: "풀코스" },
   { value: "Ultra", label: "울트라" },
 ];
+
+// raceDate 기반 대회 상태 계산
+export function getMarathonStatus(
+  raceDate: string,
+): "upcoming" | "ongoing" | "ended" {
+  const today = new Date();
+  const race = new Date(raceDate);
+  const diffDays = Math.ceil(
+    (race.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+  );
+  if (diffDays > 0) return "upcoming";
+  if (diffDays === 0) return "ongoing";
+  return "ended";
+}
+
+// 접수 날짜 기반 접수 상태 계산
+export function getRegistrationStatus(
+  applicationStartDate: string,
+  applicationEndDate: string,
+): "before" | "open" | "closed" {
+  const today = new Date();
+  const start = new Date(applicationStartDate);
+  const end = new Date(applicationEndDate);
+  if (today < start) return "before";
+  if (today <= end) return "open";
+  return "closed";
+}
+
+// raceTypeList 기반 거리 매핑
+export function getDistances(raceTypeList: string): string[] {
+  const raw = raceTypeList.toLowerCase();
+  const result: string[] = [];
+  if (raw.includes("5k") || raw.includes("5km")) result.push("5K");
+  if (raw.includes("10k") || raw.includes("10km")) result.push("10K");
+  if (raw.includes("하프") || raw.includes("half")) result.push("Half");
+  if (raw.includes("풀") || raw.includes("full") || raw.includes("마라톤"))
+    result.push("Full");
+  if (raw.includes("울트라") || raw.includes("ultra")) result.push("Ultra");
+  return result;
+}
 
 export function FilterSidebar({
   marathons,
@@ -99,39 +139,28 @@ export function FilterSidebar({
   onMobileClose,
   onReset,
 }: FilterSidebarProps) {
-  // 지역별 대회 수 계산
   const getRegionCount = (regionValue: string, cities?: string[]) => {
     if (!marathons || marathons.length === 0) return 0;
-
-    if (cities) {
-      // 광역시, 충청, 경상, 전라 등
-      return marathons.filter((m) => cities.includes(m.region)).length;
-    }
-    return marathons.filter((m) => m.region === regionValue).length;
+    if (cities)
+      return marathons.filter((m) => cities.includes(m.regionCategory)).length;
+    return marathons.filter((m) => m.regionCategory === regionValue).length;
   };
 
-  // 체크박스 토글
   const handleRegionToggle = (regionValue: string, cities?: string[]) => {
     if (cities) {
-      // 그룹 지역 (광역시, 충청 등)
       const allSelected = cities.every((city) =>
         selectedRegions.includes(city),
       );
       if (allSelected) {
-        // 모두 선택되어 있으면 모두 해제
         onRegionChange(selectedRegions.filter((r) => !cities.includes(r)));
       } else {
-        // 하나라도 선택 안되어 있으면 모두 선택
         const newRegions = [...selectedRegions];
         cities.forEach((city) => {
-          if (!newRegions.includes(city)) {
-            newRegions.push(city);
-          }
+          if (!newRegions.includes(city)) newRegions.push(city);
         });
         onRegionChange(newRegions);
       }
     } else {
-      // 단일 지역
       if (selectedRegions.includes(regionValue)) {
         onRegionChange(selectedRegions.filter((r) => r !== regionValue));
       } else {
@@ -140,11 +169,8 @@ export function FilterSidebar({
     }
   };
 
-  // 체크박스 상태 확인
   const isRegionChecked = (regionValue: string, cities?: string[]) => {
-    if (cities) {
-      return cities.some((city) => selectedRegions.includes(city));
-    }
+    if (cities) return cities.some((city) => selectedRegions.includes(city));
     return selectedRegions.includes(regionValue);
   };
 
@@ -163,7 +189,7 @@ export function FilterSidebar({
           </button>
         </div>
 
-        {/* 모바일 닫기 버튼 */}
+        {/* 모바일 닫기 */}
         {isMobileOpen && (
           <button
             onClick={onMobileClose}
@@ -174,14 +200,13 @@ export function FilterSidebar({
           </button>
         )}
 
-        {/* 지역 필터 - 체크박스 */}
+        {/* 지역 필터 */}
         <div>
           <h3 className="text-sm font-bold text-gray-900 mb-3">지역</h3>
           <div className="space-y-2">
             {regionGroups.map((region) => {
               const count = getRegionCount(region.value, region.cities);
               const isChecked = isRegionChecked(region.value, region.cities);
-
               return (
                 <label
                   key={region.value}
@@ -267,7 +292,7 @@ export function FilterSidebar({
           </div>
         </div>
 
-        {/* 거리별 */}
+        {/* 거리 */}
         <div>
           <h3 className="text-sm font-bold text-gray-900 mb-3">거리</h3>
           <div className="space-y-2">
@@ -292,12 +317,9 @@ export function FilterSidebar({
 
   return (
     <>
-      {/* 데스크톱 사이드바 */}
       <aside className="hidden lg:block w-80 bg-white border-r border-gray-200 h-full flex-shrink-0">
         {sidebarContent}
       </aside>
-
-      {/* 모바일 오버레이 */}
       {isMobileOpen && (
         <>
           <div

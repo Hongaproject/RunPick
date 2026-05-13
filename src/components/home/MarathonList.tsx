@@ -1,31 +1,40 @@
+"use client";
+
 import { useState, useMemo } from "react";
+import { MarathonRace } from "@/types/marathon";
 import {
-  Marathon,
-  MarathonDistance,
-  MarathonStatus,
-  RegistrationStatus,
-} from "../../types/marathon";
-import { FilterSidebar } from "./FilterSidebar";
+  FilterSidebar,
+  getMarathonStatus,
+  getRegistrationStatus,
+  getDistances,
+} from "./FilterSidebar";
 import { MarathonCard } from "./MarathonCard";
 import { SearchBar } from "./SearchBar";
 import { Footer } from "../common/Footer";
-interface MarathonList {
-  marathons: Marathon[];
-  onSelectMarathon: (marathon: Marathon) => void;
+
+interface MarathonListProps {
+  marathons: MarathonRace[];
 }
 
-export function MarathonList({ marathons, onSelectMarathon }: MarathonList) {
+export function MarathonList({ marathons }: MarathonListProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
   const [selectedMonth, setSelectedMonth] = useState("all");
-  const [selectedStatus, setSelectedStatus] = useState<MarathonStatus | "all">(
-    "upcoming",
-  );
+  // 기본값: "upcoming" → 종료된 경기는 기본적으로 안 보임
+  const [selectedStatus, setSelectedStatus] = useState<
+    "all" | "upcoming" | "ongoing" | "ended"
+  >("upcoming");
   const [selectedRegistration, setSelectedRegistration] = useState<
-    RegistrationStatus | "all"
+    "all" | "before" | "open" | "closed"
   >("all");
+  // 타입 명시 핸들러
+  const handleRegistrationChange = (
+    status: "all" | "before" | "open" | "closed",
+  ) => {
+    setSelectedRegistration(status);
+  };
   const [selectedDistance, setSelectedDistance] = useState<
-    MarathonDistance | "all"
+    "all" | "5K" | "10K" | "Half" | "Full" | "Ultra"
   >("all");
   const [sortBy, setSortBy] = useState<"latest" | "deadline">("latest");
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
@@ -36,49 +45,47 @@ export function MarathonList({ marathons, onSelectMarathon }: MarathonList) {
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         if (
-          !marathon.name.toLowerCase().includes(query) &&
-          !marathon.location.toLowerCase().includes(query) &&
+          !marathon.raceName.toLowerCase().includes(query) &&
+          !marathon.place.toLowerCase().includes(query) &&
           !marathon.region.toLowerCase().includes(query)
         ) {
           return false;
         }
       }
 
-      // 지역 필터 (체크박스 - 다중 선택)
+      // 지역 필터 (광역시 그룹 처리)
       if (
         selectedRegions.length > 0 &&
-        !selectedRegions.includes(marathon.region)
+        !selectedRegions.includes(marathon.regionCategory)
       ) {
         return false;
       }
 
       // 월별 필터
       if (selectedMonth !== "all") {
-        const marathonMonth = new Date(marathon.date).getMonth() + 1;
-        if (marathonMonth.toString() !== selectedMonth) {
-          return false;
-        }
+        const marathonMonth = new Date(marathon.raceDate).getMonth() + 1;
+        if (marathonMonth.toString() !== selectedMonth) return false;
       }
 
-      // 대회 상태 필터
-      if (selectedStatus !== "all" && marathon.status !== selectedStatus) {
-        return false;
+      // 대회 상태 필터 (날짜 기반 계산)
+      if (selectedStatus !== "all") {
+        const status = getMarathonStatus(marathon.raceDate);
+        if (status !== selectedStatus) return false;
       }
 
-      // 접수 상태 필터
-      if (
-        selectedRegistration !== "all" &&
-        marathon.registrationStatus !== selectedRegistration
-      ) {
-        return false;
+      // 접수 상태 필터 (날짜 기반 계산)
+      if (selectedRegistration !== "all") {
+        const regStatus = getRegistrationStatus(
+          marathon.applicationStartDate,
+          marathon.applicationEndDate,
+        );
+        if (regStatus !== selectedRegistration) return false;
       }
 
-      // 거리 필터
-      if (
-        selectedDistance !== "all" &&
-        !marathon.distances.includes(selectedDistance)
-      ) {
-        return false;
+      // 거리 필터 (raceTypeList 기반 계산)
+      if (selectedDistance !== "all") {
+        const distanceList = getDistances(marathon.raceTypeList);
+        if (!distanceList.includes(selectedDistance)) return false;
       }
 
       return true;
@@ -87,22 +94,15 @@ export function MarathonList({ marathons, onSelectMarathon }: MarathonList) {
     // 정렬
     if (sortBy === "latest") {
       filtered.sort(
-        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+        (a, b) =>
+          new Date(a.raceDate).getTime() - new Date(b.raceDate).getTime(),
       );
     } else if (sortBy === "deadline") {
-      // 접수 마감일이 가까운 순 (접수 중인 것만 우선)
-      filtered.sort((a, b) => {
-        const aOpen = a.registrationStatus === "open";
-        const bOpen = b.registrationStatus === "open";
-
-        if (aOpen && !bOpen) return -1;
-        if (!aOpen && bOpen) return 1;
-
-        return (
-          new Date(a.registrationEnd).getTime() -
-          new Date(b.registrationEnd).getTime()
-        );
-      });
+      filtered.sort(
+        (a, b) =>
+          new Date(a.applicationEndDate).getTime() -
+          new Date(b.applicationEndDate).getTime(),
+      );
     }
 
     return filtered;
@@ -117,67 +117,44 @@ export function MarathonList({ marathons, onSelectMarathon }: MarathonList) {
     sortBy,
   ]);
 
-  // 필터 변경시 첫 페이지로
-  const handleFilterChange = (callback: () => void) => {
-    callback();
-  };
-
-  // 필터 초기화
   const handleReset = () => {
     setSearchQuery("");
     setSelectedRegions([]);
     setSelectedMonth("all");
-    setSelectedStatus("upcoming");
-    setSelectedRegistration("all");
+    setSelectedStatus("upcoming"); // 초기화해도 종료 경기는 기본 제외
+    setSelectedRegistration("all" as "all" | "before" | "open" | "closed");
     setSelectedDistance("all");
   };
 
   return (
-    // 전체 컨테이너: 부모의 높이(h-full)를 꽉 채우고 배경색 지정
     <div className="flex h-full bg-gray-50">
-      {/* 1. 필터 사이드바 (왼쪽에 고정) */}
       <FilterSidebar
         marathons={marathons}
         selectedRegions={selectedRegions}
-        onRegionChange={(regions) =>
-          handleFilterChange(() => setSelectedRegions(regions))
-        }
+        onRegionChange={(regions) => setSelectedRegions(regions)}
         selectedMonth={selectedMonth}
-        onMonthChange={(month) =>
-          handleFilterChange(() => setSelectedMonth(month))
-        }
+        onMonthChange={(month) => setSelectedMonth(month)}
         selectedStatus={selectedStatus}
-        onStatusChange={(status) =>
-          handleFilterChange(() => setSelectedStatus(status))
-        }
+        onStatusChange={(status) => setSelectedStatus(status)}
         selectedRegistration={selectedRegistration}
-        onRegistrationChange={(status) =>
-          handleFilterChange(() => setSelectedRegistration(status))
-        }
+        onRegistrationChange={handleRegistrationChange}
         selectedDistance={selectedDistance}
-        onDistanceChange={(distance) =>
-          handleFilterChange(() => setSelectedDistance(distance))
-        }
+        onDistanceChange={(distance) => setSelectedDistance(distance)}
         isMobileOpen={isMobileFilterOpen}
         onMobileClose={() => setIsMobileFilterOpen(false)}
         onReset={handleReset}
       />
 
-      {/* 2. 메인 컨텐츠 영역 (서치바 + 리스트) */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* ✨ 서치바 (스크롤 영역 바깥에 있으므로 항상 상단에 고정됨) */}
         <SearchBar
           searchQuery={searchQuery}
-          onSearchChange={(query) =>
-            handleFilterChange(() => setSearchQuery(query))
-          }
+          onSearchChange={(query) => setSearchQuery(query)}
           onFilterClick={() => setIsMobileFilterOpen(true)}
           sortBy={sortBy}
-          onSortChange={(sort) => handleFilterChange(() => setSortBy(sort))}
+          onSortChange={(sort) => setSortBy(sort)}
           totalCount={filteredAndSortedMarathons.length}
         />
 
-        {/* ✨ 리스트 영역 (여기에만 overflow-y-auto를 주어 내부 스크롤 생성) */}
         <div className="flex-1 overflow-y-auto">
           <div className="px-4 sm:px-6 lg:px-8 py-8">
             {filteredAndSortedMarathons.length === 0 ? (
@@ -214,16 +191,13 @@ export function MarathonList({ marathons, onSelectMarathon }: MarathonList) {
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
                 {filteredAndSortedMarathons.map((marathon) => (
                   <MarathonCard
-                    key={marathon.id}
+                    key={marathon.raceDetailUrl}
                     marathon={marathon}
-                    onClick={() => onSelectMarathon(marathon)}
                   />
                 ))}
               </div>
             )}
           </div>
-
-          {/* ✨ 리스트가 끝나는 맨 아랫부분에 Footer 컴포넌트 추가 */}
           <Footer />
         </div>
       </div>
