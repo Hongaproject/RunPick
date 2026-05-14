@@ -13,12 +13,14 @@ export async function getMarathons(): Promise<MarathonRace[]> {
   return data.map(mapToMarathonRace);
 }
 
-// 특정 마라톤 상세 조회 (raceDetailUrl 기준)
-export async function getMarathonBySlug(slug: string): Promise<MarathonRace | null> {
+// ID 기반 상세 조회 (URL safe)
+export async function getMarathonById(
+  id: string,
+): Promise<MarathonRace | null> {
   const { data, error } = await supabase
     .from("marathons")
     .select("*")
-    .eq("race_detail_url", slug)
+    .eq("id", id)
     .single();
 
   if (error) return null;
@@ -27,7 +29,9 @@ export async function getMarathonBySlug(slug: string): Promise<MarathonRace | nu
 }
 
 // 지역별 필터 조회
-export async function getMarathonsByRegion(region: string): Promise<MarathonRace[]> {
+export async function getMarathonsByRegion(
+  region: string,
+): Promise<MarathonRace[]> {
   const { data, error } = await supabase
     .from("marathons")
     .select("*")
@@ -42,6 +46,7 @@ export async function getMarathonsByRegion(region: string): Promise<MarathonRace
 // DB 컬럼명(snake_case) → 타입(camelCase) 변환
 function mapToMarathonRace(row: Record<string, unknown>): MarathonRace {
   return {
+    id: row.id as string,
     raceName: row.race_name as string,
     raceDate: row.race_date as string,
     raceStart: row.race_start as string,

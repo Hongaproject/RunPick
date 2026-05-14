@@ -28,6 +28,7 @@ export interface Marathon {
 }
 
 export interface MarathonRace {
+  id: string; // Supabase UUID
   raceName: string;
   raceDate: string;
   raceStart: string;

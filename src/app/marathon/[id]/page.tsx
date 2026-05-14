@@ -1,21 +1,18 @@
-import { getMarathonBySlug, getMarathons } from "@/api/marathons";
+import { getMarathonById } from "@/api/marathons";
 import MarathonDetail from "@/components/detail/MarathonDetail";
 import { notFound } from "next/navigation";
 
-interface Props {
-  params: Promise<{ slug: string }>;
-}
+// 동적 렌더링 강제 (SSG 비활성화)
+export const dynamic = "force-dynamic";
 
-// 정적 경로 생성 (SSG)
-export async function generateStaticParams() {
-  const marathons = await getMarathons();
-  return marathons.map((m) => ({ slug: m.raceDetailUrl }));
+interface Props {
+  params: Promise<{ id: string }>;
 }
 
 // SEO 메타데이터
 export async function generateMetadata({ params }: Props) {
-  const { slug } = await params;
-  const marathon = await getMarathonBySlug(slug);
+  const { id } = await params;
+  const marathon = await getMarathonById(id);
   if (!marathon) return { title: "대회를 찾을 수 없습니다" };
 
   return {
@@ -29,8 +26,8 @@ export async function generateMetadata({ params }: Props) {
 }
 
 export default async function MarathonDetailPage({ params }: Props) {
-  const { slug } = await params;
-  const marathon = await getMarathonBySlug(slug);
+  const { id } = await params;
+  const marathon = await getMarathonById(id);
 
   if (!marathon) notFound();
 

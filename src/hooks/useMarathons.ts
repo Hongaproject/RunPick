@@ -1,5 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { getMarathons, getMarathonBySlug, getMarathonsByRegion } from "@/api/marathons";
+import {
+  getMarathons,
+  getMarathonById,
+  getMarathonsByRegion,
+} from "@/api/marathons";
 
 // 전체 마라톤 목록
 export function useMarathons() {
@@ -10,11 +14,11 @@ export function useMarathons() {
 }
 
 // 특정 마라톤 상세
-export function useMarathonDetail(slug: string) {
+export function useMarathonDetail(id: string) {
   return useQuery({
-    queryKey: ["marathon", slug],
-    queryFn: () => getMarathonBySlug(slug),
-    enabled: !!slug,
+    queryKey: ["marathon", id],
+    queryFn: () => getMarathonById(id),
+    enabled: !!id,
   });
 }
 

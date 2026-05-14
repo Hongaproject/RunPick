@@ -129,7 +129,9 @@ export function MarathonList({ marathons }: MarathonListProps) {
   return (
     <div className="flex h-full bg-gray-50">
       <FilterSidebar
-        marathons={marathons}
+        marathons={marathons.filter(
+          (m) => getMarathonStatus(m.raceDate) !== "ended",
+        )}
         selectedRegions={selectedRegions}
         onRegionChange={(regions) => setSelectedRegions(regions)}
         selectedMonth={selectedMonth}

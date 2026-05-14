@@ -11,13 +11,11 @@ export function MarathonCard({ marathon }: MarathonCardProps) {
   const registrationEnd = new Date(marathon.applicationEndDate);
   const raceDate = new Date(marathon.raceDate);
 
-  // 접수 상태
   const isOpen = today <= registrationEnd;
   const daysLeft = Math.ceil(
     (registrationEnd.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
   );
 
-  // D-day 계산
   const getDday = () => {
     const diff = Math.ceil(
       (raceDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
@@ -34,10 +32,9 @@ export function MarathonCard({ marathon }: MarathonCardProps) {
     .filter(Boolean);
 
   return (
-    <Link href={`/marathon/${marathon.raceDetailUrl}`}>
+    <Link href={`/marathon/${marathon.id}`}>
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-xl hover:scale-[1.02] transition-all duration-300 cursor-pointer group">
         <div className="p-5">
-          {/* 상단 배지 및 D-day */}
           <div className="flex items-center justify-between gap-2 mb-4">
             <div className="flex gap-2 flex-wrap">
               <span
@@ -58,7 +55,6 @@ export function MarathonCard({ marathon }: MarathonCardProps) {
             </div>
           </div>
 
-          {/* 접수 마감 임박 알림 */}
           {isOpen && daysLeft <= 7 && (
             <div className="mb-4">
               <div className="bg-red-500 text-white px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2">
@@ -78,7 +74,6 @@ export function MarathonCard({ marathon }: MarathonCardProps) {
             </div>
           )}
 
-          {/* 대회명 */}
           <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors line-clamp-1">
             {marathon.raceName}
           </h3>
@@ -95,12 +90,10 @@ export function MarathonCard({ marathon }: MarathonCardProps) {
                 })}
               </span>
             </div>
-
             <div className="flex items-center gap-2 text-gray-600">
               <MapPin className="w-4 h-4 flex-shrink-0 text-red-600" />
               <span className="text-sm line-clamp-1">{marathon.place}</span>
             </div>
-
             <div className="flex items-center gap-2 text-gray-600">
               <Tag className="w-4 h-4 flex-shrink-0 text-purple-600" />
               <div className="flex flex-wrap gap-1.5">

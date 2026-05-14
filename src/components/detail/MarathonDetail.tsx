@@ -18,6 +18,9 @@ import {
 } from "lucide-react";
 import { MarathonRace } from "@/types/marathon";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
+
+const KakaoMap = dynamic(() => import("./KakaoMap"), { ssr: false });
 
 interface MarathonDetailProps {
   marathon: MarathonRace;
@@ -25,12 +28,6 @@ interface MarathonDetailProps {
 
 export default function MarathonDetail({ marathon }: MarathonDetailProps) {
   const router = useRouter();
-
-  // 데이터 가공
-  const raceTypes = marathon.raceTypeList
-    .split(/[,\/]/)
-    .map((t) => t.trim())
-    .filter(Boolean);
 
   const registrationEnd = new Date(marathon.applicationEndDate);
   const registrationStart = new Date(marathon.applicationStartDate);
@@ -41,11 +38,10 @@ export default function MarathonDetail({ marathon }: MarathonDetailProps) {
   const isBefore = today < registrationStart;
   const isClosed = today > registrationEnd;
 
-  // D-day 계산 (대회일 기준)
   const getDday = () => {
-    const diffTime = eventDate.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
+    const diffDays = Math.ceil(
+      (eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+    );
     if (diffDays < 0) return { text: "종료", color: "text-gray-600" };
     if (diffDays === 0) return { text: "D-Day", color: "text-red-600" };
     if (diffDays <= 7) return { text: `D-${diffDays}`, color: "text-red-600" };
@@ -60,13 +56,10 @@ export default function MarathonDetail({ marathon }: MarathonDetailProps) {
       text: `${marathon.raceName} - ${marathon.place}에서 ${eventDate.toLocaleDateString("ko-KR")}에 개최됩니다!`,
       url: window.location.href,
     };
-
     if (navigator.share) {
       try {
         await navigator.share(shareData);
-      } catch (err) {
-        console.log("공유 취소됨");
-      }
+      } catch {}
     } else {
       navigator.clipboard.writeText(window.location.href);
       alert("링크가 클립보드에 복사되었습니다!");
@@ -82,7 +75,6 @@ export default function MarathonDetail({ marathon }: MarathonDetailProps) {
             <button
               onClick={() => router.back()}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
-              aria-label="뒤로 가기"
             >
               <ArrowLeft className="w-6 h-6" />
             </button>
@@ -92,7 +84,6 @@ export default function MarathonDetail({ marathon }: MarathonDetailProps) {
             <button
               onClick={handleShare}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
-              aria-label="공유하기"
             >
               <Share2 className="w-6 h-6" />
             </button>
@@ -101,7 +92,7 @@ export default function MarathonDetail({ marathon }: MarathonDetailProps) {
       </div>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* 대회 헤더 섹션 (디자인 유지) */}
+        {/* 배너 */}
         <div className="bg-gradient-to-br from-blue-600 to-purple-600 rounded-3xl overflow-hidden mb-8 shadow-xl p-8 sm:p-10">
           <div className="flex items-start justify-between gap-4 mb-6">
             <div className="flex gap-3 flex-wrap">
@@ -131,16 +122,15 @@ export default function MarathonDetail({ marathon }: MarathonDetailProps) {
           </h2>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* 왼쪽: 주요 정보 */}
+        <div className="grid lg:grid-cols-3 gap-8 items-start">
+          {/* 왼쪽 */}
           <div className="lg:col-span-2 space-y-6">
-            {/* 핵심 정보 카드 */}
+            {/* 핵심 정보 */}
             <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100">
               <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
                 <Info className="w-7 h-7 text-blue-600" />
                 핵심 정보
               </h3>
-
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="flex items-start gap-4 p-5 bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-xl border border-blue-200">
                   <div className="bg-blue-600 p-3 rounded-xl">
@@ -166,7 +156,6 @@ export default function MarathonDetail({ marathon }: MarathonDetailProps) {
                     </div>
                   </div>
                 </div>
-
                 <div className="flex items-start gap-4 p-5 bg-gradient-to-br from-red-50 to-red-100/50 rounded-xl border border-red-200">
                   <div className="bg-red-600 p-3 rounded-xl">
                     <MapPin className="w-6 h-6 text-white" />
@@ -183,7 +172,6 @@ export default function MarathonDetail({ marathon }: MarathonDetailProps) {
                     </div>
                   </div>
                 </div>
-
                 <div className="flex items-start gap-4 p-5 bg-gradient-to-br from-green-50 to-green-100/50 rounded-xl border border-green-200 sm:col-span-2">
                   <div className="bg-green-600 p-3 rounded-xl">
                     <Clock className="w-6 h-6 text-white" />
@@ -208,7 +196,7 @@ export default function MarathonDetail({ marathon }: MarathonDetailProps) {
               </div>
             </div>
 
-            {/* 종목 및 참가비 (동적 생성) */}
+            {/* 종목 및 참가비 */}
             {marathon.fares && Object.keys(marathon.fares).length > 0 && (
               <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100">
                 <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
@@ -237,7 +225,18 @@ export default function MarathonDetail({ marathon }: MarathonDetailProps) {
               </div>
             )}
 
-            {/* 연락처 및 공식 채널 */}
+            {/* 카카오맵 */}
+            {marathon.place && (
+              <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100">
+                <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                  <MapPin className="w-7 h-7 text-blue-600" />
+                  대회 위치
+                </h3>
+                <KakaoMap placeName={marathon.place} />
+              </div>
+            )}
+
+            {/* 공식 채널 */}
             <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100">
               <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
                 <Globe className="w-7 h-7 text-blue-600" />
@@ -283,10 +282,9 @@ export default function MarathonDetail({ marathon }: MarathonDetailProps) {
             </div>
           </div>
 
-          {/* 오른쪽: 사이드바 */}
-          <div className="space-y-6">
-            {/* 신청 CTA */}
-            <div className="bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl p-6 text-white shadow-xl sticky top-24">
+          {/* 오른쪽 사이드바 - 전체를 sticky로 */}
+          <div className="space-y-6 sticky top-24 self-start">
+            <div className="bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl p-6 text-white shadow-xl">
               <h3 className="text-xl font-bold mb-4">참가 신청</h3>
               <div className="space-y-4">
                 <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4">
@@ -304,10 +302,9 @@ export default function MarathonDetail({ marathon }: MarathonDetailProps) {
                           const targetDate = isBefore
                             ? registrationStart
                             : registrationEnd;
-                          const diffTime =
-                            targetDate.getTime() - today.getTime();
                           const diffDays = Math.ceil(
-                            diffTime / (1000 * 60 * 60 * 24),
+                            (targetDate.getTime() - today.getTime()) /
+                              (1000 * 60 * 60 * 24),
                           );
                           return diffDays > 0
                             ? `${diffDays}일 남음`
@@ -317,7 +314,6 @@ export default function MarathonDetail({ marathon }: MarathonDetailProps) {
                     </>
                   )}
                 </div>
-
                 <a
                   href={marathon.homepageUrl || "#"}
                   target="_blank"
@@ -331,7 +327,6 @@ export default function MarathonDetail({ marathon }: MarathonDetailProps) {
                   {isOpen ? "공식 홈페이지에서 신청" : "신청 기간이 아닙니다"}
                   <ExternalLink className="w-5 h-5" />
                 </a>
-
                 <button
                   onClick={handleShare}
                   className="w-full bg-white/20 backdrop-blur-sm text-white py-3 px-6 rounded-xl font-medium hover:bg-white/30 transition-colors flex items-center justify-center gap-2 cursor-pointer"
@@ -342,7 +337,6 @@ export default function MarathonDetail({ marathon }: MarathonDetailProps) {
               </div>
             </div>
 
-            {/* 주최자 정보 */}
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
               <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <Award className="w-6 h-6 text-orange-600" />
@@ -361,7 +355,6 @@ export default function MarathonDetail({ marathon }: MarathonDetailProps) {
               </div>
             </div>
 
-            {/* 안내 사항 */}
             <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6">
               <h4 className="font-bold text-amber-900 mb-3 flex items-center gap-2">
                 <AlertCircle className="w-5 h-5" />
