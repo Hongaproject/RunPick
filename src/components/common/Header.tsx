@@ -19,6 +19,9 @@ export default function Header() {
   const pathname = usePathname(); // currentPage 대체
   const { user } = useAuth();
 
+  // 로그인/회원가입 페이지에서는 Header를 렌더링하지 않음
+  if (pathname === "/login" || pathname === "/signup") return null;
+
   const menuItems = [
     { label: "대회목록", icon: Home, href: "/" },
     { label: "커뮤니티", icon: MessageSquare, href: "/community" },

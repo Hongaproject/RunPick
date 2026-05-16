@@ -1,12 +1,17 @@
-import { Calendar, MapPin, Tag } from "lucide-react";
+import { Calendar, MapPin, Tag, Heart } from "lucide-react";
 import { MarathonRace } from "@/types/marathon";
 import Link from "next/link";
+import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
 
 interface MarathonCardProps {
   marathon: MarathonRace;
 }
 
 export function MarathonCard({ marathon }: MarathonCardProps) {
+  const { user, isFavorite, toggleFavorite } = useAuth();
+  const router = useRouter();
+
   const today = new Date();
   const registrationEnd = new Date(marathon.applicationEndDate);
   const raceDate = new Date(marathon.raceDate);
@@ -31,10 +36,21 @@ export function MarathonCard({ marathon }: MarathonCardProps) {
     .map((t) => t.trim())
     .filter(Boolean);
 
+  const handleFavoriteClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+    toggleFavorite(marathon.id);
+  };
+
   return (
     <Link href={`/marathon/${marathon.id}`}>
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-xl hover:scale-[1.02] transition-all duration-300 cursor-pointer group">
+      <div className="relative bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-xl hover:scale-[1.02] transition-all duration-300 cursor-pointer group">
         <div className="p-5">
+          {/* 상태 배지 + D-day */}
           <div className="flex items-center justify-between gap-2 mb-4">
             <div className="flex gap-2 flex-wrap">
               <span
@@ -55,6 +71,7 @@ export function MarathonCard({ marathon }: MarathonCardProps) {
             </div>
           </div>
 
+          {/* 마감 임박 배너 */}
           {isOpen && daysLeft <= 7 && (
             <div className="mb-4">
               <div className="bg-red-500 text-white px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2">
@@ -74,11 +91,13 @@ export function MarathonCard({ marathon }: MarathonCardProps) {
             </div>
           )}
 
+          {/* 대회명 */}
           <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors line-clamp-1">
             {marathon.raceName}
           </h3>
 
-          <div className="space-y-2.5 mb-4">
+          {/* 날짜 / 장소 / 종목 + 즐겨찾기 */}
+          <div className="space-y-2.5">
             <div className="flex items-center gap-2 text-gray-600">
               <Calendar className="w-4 h-4 flex-shrink-0 text-blue-600" />
               <span className="text-sm font-medium">
@@ -90,22 +109,41 @@ export function MarathonCard({ marathon }: MarathonCardProps) {
                 })}
               </span>
             </div>
+
             <div className="flex items-center gap-2 text-gray-600">
               <MapPin className="w-4 h-4 flex-shrink-0 text-red-600" />
               <span className="text-sm line-clamp-1">{marathon.place}</span>
             </div>
-            <div className="flex items-center gap-2 text-gray-600">
-              <Tag className="w-4 h-4 flex-shrink-0 text-purple-600" />
-              <div className="flex flex-wrap gap-1.5">
-                {raceTypes.map((type) => (
-                  <span
-                    key={type}
-                    className="text-xs px-2.5 py-1 bg-gradient-to-r from-blue-50 to-purple-50 text-blue-700 font-medium rounded-full border border-blue-200"
-                  >
-                    {type}
-                  </span>
-                ))}
+
+            {/* 종목 태그 + 즐겨찾기 버튼 같은 줄 */}
+            <div className="flex items-center justify-between gap-2 text-gray-600">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <Tag className="w-4 h-4 flex-shrink-0 text-purple-600" />
+                <div className="flex flex-wrap gap-1.5">
+                  {raceTypes.map((type) => (
+                    <span
+                      key={type}
+                      className="text-xs px-2.5 py-1 bg-gradient-to-r from-blue-50 to-purple-50 text-blue-700 font-medium rounded-full border border-blue-200"
+                    >
+                      {type}
+                    </span>
+                  ))}
+                </div>
               </div>
+
+              {/* 즐겨찾기 버튼 */}
+              <button
+                onClick={handleFavoriteClick}
+                className="flex-shrink-0 p-2 rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
+              >
+                <Heart
+                  className={`w-5 h-5 transition-colors ${
+                    user && isFavorite(marathon.id)
+                      ? "text-red-500 fill-red-500"
+                      : "text-gray-400 hover:text-red-400"
+                  }`}
+                />
+              </button>
             </div>
           </div>
         </div>
