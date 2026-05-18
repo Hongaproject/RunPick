@@ -1,20 +1,16 @@
 "use client";
-import {
-  User,
-  Mail,
-  Heart,
-  MessageSquare,
-  LogOut,
-  Settings,
-} from "lucide-react";
+import { User, Mail, Heart, MessageSquare, LogOut, Settings, ThumbsUp } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/lib/supabase";
 
 export default function MyPage() {
   const { user, logout, isLoading } = useAuth();
   const router = useRouter();
+  const [postLikesCount, setPostLikesCount] = useState(0);
+  const [postCount, setPostCount] = useState(0);
 
   const handleLogout = async () => {
     await logout();
@@ -23,34 +19,44 @@ export default function MyPage() {
 
   useEffect(() => {
     if (!isLoading && user === null) {
-      // isLoading 끝난 후에만 체크
       router.push("/login");
     }
   }, [user, isLoading, router]);
+
+  // 글 좋아요 수 + 작성 글 수 조회
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("post_likes")
+      .select("id", { count: "exact" })
+      .eq("user_id", user.id)
+      .then(({ count }) => setPostLikesCount(count ?? 0));
+
+    supabase
+      .from("posts")
+      .select("id", { count: "exact" })
+      .eq("author_id", user.id)
+      .then(({ count }) => setPostCount(count ?? 0));
+  }, [user]);
 
   if (isLoading || !user) return null;
 
   const getProviderName = (provider?: string) => {
     switch (provider) {
-      case "kakao":
-        return "카카오";
-      case "github":
-        return "GitHub";
-      case "google":
-        return "구글";
-      default:
-        return "이메일";
+      case "kakao": return "카카오";
+      case "github": return "GitHub";
+      case "google": return "구글";
+      default: return "이메일";
     }
   };
 
   return (
-    <div className="h-full overflow-y-auto bg-gray-50">
+    <div className="bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* 프로필 카드 */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-6">
           <div className="h-32 bg-gradient-to-r from-blue-600 to-purple-600" />
           <div className="px-8 pb-8">
-            {/* 프로필 이미지 + 이름 */}
             <div className="flex items-end mt-4 mb-4">
               <div className="bg-white p-2 rounded-full shadow-lg">
                 <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
@@ -58,9 +64,7 @@ export default function MyPage() {
                 </div>
               </div>
               <div className="ml-6 pb-2">
-                <h1 className="text-3xl font-black text-gray-900">
-                  {user.name}
-                </h1>
+                <h1 className="text-3xl font-black text-gray-900">{user.name}</h1>
                 <p className="text-gray-600 flex items-center gap-2 mt-1">
                   <Mail className="w-4 h-4" />
                   {user.email}
@@ -75,41 +79,22 @@ export default function MyPage() {
               </span>
             </div>
 
-            {/* 통계 */}
-            <div className="grid grid-cols-3 gap-4 mb-6">
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 text-center border border-blue-200">
-                <div className="text-3xl font-black text-blue-600 mb-1">
-                  {user.favorites.length}
-                </div>
+            {/* 통계 - 즐겨찾기 / 글 좋아요 / 작성 글 */}
+            <div className="grid grid-cols-3 gap-4">
+              <Link href="/favorites" className="bg-gradient-to-br from-pink-50 to-red-100 rounded-xl p-4 text-center border border-red-200 hover:shadow-md transition-all">
+                <Heart className="w-6 h-6 text-red-500 mx-auto mb-1" fill="currentColor" />
+                <div className="text-3xl font-black text-red-500 mb-1">{user.favorites.length}</div>
                 <div className="text-sm text-gray-600">즐겨찾기</div>
-              </div>
-              <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 text-center border border-purple-200">
-                <div className="text-3xl font-black text-purple-600 mb-1">
-                  0
-                </div>
-                <div className="text-sm text-gray-600">참가 대회</div>
-              </div>
-              <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 text-center border border-green-200">
-                <div className="text-3xl font-black text-green-600 mb-1">0</div>
-                <div className="text-sm text-gray-600">작성 글</div>
-              </div>
-            </div>
-
-            {/* 액션 버튼 */}
-            <div className="flex gap-3">
-              <Link
-                href="/favorites"
-                className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg font-bold hover:from-blue-700 hover:to-purple-700 transition-all flex items-center justify-center gap-2"
-              >
-                <Heart className="w-5 h-5" />
-                즐겨찾기
               </Link>
-              <Link
-                href="/community"
-                className="flex-1 bg-white border-2 border-gray-300 text-gray-700 py-3 rounded-lg font-bold hover:bg-gray-50 transition-all flex items-center justify-center gap-2"
-              >
-                <MessageSquare className="w-5 h-5" />
-                커뮤니티
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 text-center border border-blue-200">
+                <ThumbsUp className="w-6 h-6 text-blue-600 mx-auto mb-1" />
+                <div className="text-3xl font-black text-blue-600 mb-1">{postLikesCount}</div>
+                <div className="text-sm text-gray-600">글 좋아요</div>
+              </div>
+              <Link href="/community" className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 text-center border border-green-200 hover:shadow-md transition-all">
+                <MessageSquare className="w-6 h-6 text-green-600 mx-auto mb-1" />
+                <div className="text-3xl font-black text-green-600 mb-1">{postCount}</div>
+                <div className="text-sm text-gray-600">작성 글</div>
               </Link>
             </div>
           </div>
@@ -129,12 +114,10 @@ export default function MyPage() {
               </Link>
               <button
                 onClick={handleLogout}
-                className="w-full flex items-center gap-3 p-4 rounded-lg hover:bg-red-50 transition-colors text-left"
+                className="w-full flex items-center gap-3 p-4 rounded-lg hover:bg-red-50 transition-colors text-left cursor-pointer"
               >
                 <LogOut className="w-5 h-5 text-red-600" />
-                <span className="font-medium text-red-600 cursor-pointer">
-                  로그아웃
-                </span>
+                <span className="font-medium text-red-600">로그아웃</span>
               </button>
             </div>
           </div>

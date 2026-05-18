@@ -9,7 +9,6 @@ import {
 import { supabase } from "@/lib/supabase";
 import type { Session, Provider } from "@supabase/supabase-js";
 
-// Supabase 공식 지원 소셜 로그인만 포함 (naver는 공식 미지원이라 제외)
 export type SocialProvider = Extract<Provider, "google" | "github" | "kakao">;
 
 export interface User {
@@ -29,7 +28,7 @@ interface AuthContextType {
   loginWithProvider: (provider: SocialProvider) => Promise<void>;
   signup: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  toggleFavorite: (marathonId: string) => void;
+  toggleFavorite: (marathonId: string) => Promise<void>;
   isFavorite: (marathonId: string) => boolean;
 }
 
@@ -40,41 +39,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const formatUser = (supabaseSession: Session): User => ({
-    id: supabaseSession.user.id,
-    name:
-      supabaseSession.user.user_metadata?.full_name ||
-      supabaseSession.user.user_metadata?.name ||
-      supabaseSession.user.email?.split("@")[0] ||
-      "사용자",
-    email: supabaseSession.user.email ?? "",
-    profileImage: supabaseSession.user.user_metadata?.avatar_url,
-    provider:
-      (supabaseSession.user.app_metadata?.provider as User["provider"]) ||
-      "email",
-    favorites: [],
-  });
+  // 즐겨찾기 목록 Supabase에서 로드
+  const loadFavorites = async (userId: string): Promise<string[]> => {
+    const { data } = await supabase
+      .from("user_favorites")
+      .select("marathon_id")
+      .eq("user_id", userId);
+    return data?.map((row) => row.marathon_id) ?? [];
+  };
+
+  const formatUser = async (supabaseSession: Session): Promise<User> => {
+    const favorites = await loadFavorites(supabaseSession.user.id);
+    return {
+      id: supabaseSession.user.id,
+      name:
+        supabaseSession.user.user_metadata?.full_name ||
+        supabaseSession.user.user_metadata?.name ||
+        supabaseSession.user.email?.split("@")[0] ||
+        "사용자",
+      email: supabaseSession.user.email ?? "",
+      profileImage: supabaseSession.user.user_metadata?.avatar_url,
+      provider:
+        (supabaseSession.user.app_metadata?.provider as User["provider"]) ||
+        "email",
+      favorites,
+    };
+  };
 
   useEffect(() => {
     const initSession = async () => {
-      const {
-        data: { session: currentSession },
-      } = await supabase.auth.getSession();
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
       if (currentSession) {
         setSession(currentSession);
-        setUser(formatUser(currentSession));
+        setUser(await formatUser(currentSession));
       }
       setIsLoading(false);
     };
 
     initSession();
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
       if (newSession) {
         setSession(newSession);
-        setUser(formatUser(newSession));
+        setUser(await formatUser(newSession));
       } else {
         setSession(null);
         setUser(null);
@@ -85,19 +92,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw new Error(error.message);
   };
 
   const loginWithProvider = async (provider: SocialProvider) => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
-      options: {
-        redirectTo: `${window.location.origin}/`,
-      },
+      options: { redirectTo: `${window.location.origin}/` },
     });
     if (error) throw new Error(error.message);
   };
@@ -106,9 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        data: { full_name: name },
-      },
+      options: { data: { full_name: name } },
     });
     if (error) throw new Error(error.message);
   };
@@ -118,14 +118,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw new Error(error.message);
   };
 
-  const toggleFavorite = (marathonId: string) => {
+  const toggleFavorite = async (marathonId: string) => {
     if (!user) return;
-    setUser({
-      ...user,
-      favorites: user.favorites.includes(marathonId)
-        ? user.favorites.filter((id) => id !== marathonId)
-        : [...user.favorites, marathonId],
-    });
+
+    const isFav = user.favorites.includes(marathonId);
+
+    if (isFav) {
+      await supabase
+        .from("user_favorites")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("marathon_id", marathonId);
+      setUser({ ...user, favorites: user.favorites.filter((id) => id !== marathonId) });
+    } else {
+      await supabase
+        .from("user_favorites")
+        .insert({ user_id: user.id, marathon_id: marathonId });
+      setUser({ ...user, favorites: [...user.favorites, marathonId] });
+    }
   };
 
   const isFavorite = (marathonId: string) => {
