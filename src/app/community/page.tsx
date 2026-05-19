@@ -13,7 +13,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { getPosts } from "@/api/community";
+import { getPosts } from "@/app/api/community";
 import { Post, PostCategory } from "@/types/community";
 import { Footer } from "@/components/common/Footer";
 
@@ -73,7 +73,7 @@ export default function CommunityPage() {
               </div>
               <button
                 onClick={handleWritePost}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg font-bold hover:from-blue-700 hover:to-purple-700 transition-all flex items-center gap-2 cursor-pointer"
+                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg font-bold hover:from-blue-700 hover:to-purple-700 transition-all flex items-center gap-2"
               >
                 <Plus className="w-5 h-5" />
                 글쓰기
@@ -98,7 +98,7 @@ export default function CommunityPage() {
                 <button
                   key={category}
                   onClick={() => setSelectedCategory(category)}
-                  className={`px-4 py-2 rounded-lg font-medium transition-all cursor-pointer ${
+                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
                     selectedCategory === category
                       ? "bg-blue-600 text-white"
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -131,7 +131,7 @@ export default function CommunityPage() {
                 </p>
                 <button
                   onClick={handleWritePost}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors cursor-pointer"
+                  className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
                 >
                   글쓰기
                 </button>
@@ -180,7 +180,12 @@ export default function CommunityPage() {
                           </div>
                           <div className="flex items-center gap-1">
                             <MessageSquare className="w-4 h-4" />
-                            <span>{post.comments.length}</span>
+                            <span>
+                              {post.comments.reduce(
+                                (acc, c) => acc + 1 + (c.replies?.length ?? 0),
+                                0,
+                              )}
+                            </span>
                           </div>
                         </div>
                       </div>

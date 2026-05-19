@@ -9,6 +9,9 @@ import {
   Edit,
   Trash2,
   Send,
+  Check,
+  X,
+  CornerDownRight,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -18,8 +21,10 @@ import {
   toggleLike,
   checkLiked,
   deletePost,
-} from "@/api/community";
-import { Post, PostCategory } from "@/types/community";
+  updateComment,
+  deleteComment,
+} from "@/app/api/community";
+import { Post, Comment, PostCategory } from "@/types/community";
 import { Footer } from "@/components/common/Footer";
 
 const categoryColors: Record<PostCategory, string> = {
@@ -44,6 +49,14 @@ export default function PostDetailPage({
   const [isLoading, setIsLoading] = useState(true);
   const viewedRef = useRef(false);
 
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editingContent, setEditingContent] = useState("");
+  const [deletingCommentId, setDeletingCommentId] = useState<string | null>(
+    null,
+  );
+  const [replyingToId, setReplyingToId] = useState<string | null>(null);
+  const [replyContent, setReplyContent] = useState("");
+
   useEffect(() => {
     if (viewedRef.current) return;
     viewedRef.current = true;
@@ -58,9 +71,7 @@ export default function PostDetailPage({
   }, [id, router]);
 
   useEffect(() => {
-    if (user && id) {
-      checkLiked(id, user.id).then(setLiked);
-    }
+    if (user && id) checkLiked(id, user.id).then(setLiked);
   }, [user, id]);
 
   if (isLoading || !post)
@@ -72,6 +83,7 @@ export default function PostDetailPage({
 
   const isAuthor = user?.id === post.authorId;
 
+  // 댓글 작성 (Ctrl+Enter 또는 버튼)
   const handleAddComment = async () => {
     if (!user) {
       alert("로그인이 필요합니다.");
@@ -92,6 +104,56 @@ export default function PostDetailPage({
     setCommentContent("");
   };
 
+  const handleCommentKeyDown = (
+    e: React.KeyboardEvent<HTMLTextAreaElement>,
+  ) => {
+    // Enter 단독: 작성 / Shift+Enter: 줄바꿈
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleAddComment();
+    }
+  };
+
+  // 대댓글 작성 (Ctrl+Enter 또는 버튼)
+  const handleAddReply = async (parentId: string) => {
+    if (!user) {
+      alert("로그인이 필요합니다.");
+      router.push("/login");
+      return;
+    }
+    if (!replyContent.trim()) {
+      alert("내용을 입력해주세요.");
+      return;
+    }
+    const newReply = await createComment(
+      post.id,
+      replyContent,
+      user.id,
+      user.name,
+      parentId,
+    );
+    setPost({
+      ...post,
+      comments: post.comments.map((c) =>
+        c.id === parentId
+          ? { ...c, replies: [...(c.replies ?? []), newReply] }
+          : c,
+      ),
+    });
+    setReplyContent("");
+    setReplyingToId(null);
+  };
+
+  const handleReplyKeyDown = (
+    e: React.KeyboardEvent<HTMLTextAreaElement>,
+    parentId: string,
+  ) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleAddReply(parentId);
+    }
+  };
+
   const handleDelete = async () => {
     await deletePost(post.id);
     router.push("/community");
@@ -107,6 +169,279 @@ export default function PostDetailPage({
     setLiked(!liked);
     setPost({ ...post, likes: newLikes });
   };
+
+  const handleStartEdit = (commentId: string, content: string) => {
+    setEditingCommentId(commentId);
+    setEditingContent(content);
+    setReplyingToId(null);
+  };
+
+  // 댓글 수정 확인 (Ctrl+Enter 지원)
+  const handleConfirmEdit = async (
+    commentId: string,
+    isReply: boolean,
+    parentId?: string,
+  ) => {
+    if (!editingContent.trim()) return;
+    await updateComment(commentId, editingContent);
+
+    const newContent = editingContent;
+
+    if (isReply && parentId) {
+      setPost({
+        ...post,
+        comments: post.comments.map((c) =>
+          c.id === parentId
+            ? {
+                ...c,
+                replies: (c.replies ?? []).map((r: Comment) =>
+                  r.id === commentId ? { ...r, content: newContent } : r,
+                ),
+              }
+            : c,
+        ),
+      });
+    } else {
+      setPost({
+        ...post,
+        comments: post.comments.map((c) =>
+          c.id === commentId ? { ...c, content: newContent } : c,
+        ),
+      });
+    }
+    setEditingCommentId(null);
+    setEditingContent("");
+  };
+
+  const handleEditKeyDown = (
+    e: React.KeyboardEvent<HTMLTextAreaElement>,
+    commentId: string,
+    isReply: boolean,
+    parentId?: string,
+  ) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleConfirmEdit(commentId, isReply, parentId);
+    }
+    if (e.key === "Escape") {
+      setEditingCommentId(null);
+      setEditingContent("");
+    }
+  };
+
+  const handleConfirmDelete = async (
+    commentId: string,
+    isReply: boolean,
+    parentId?: string,
+  ) => {
+    await deleteComment(commentId);
+    if (isReply && parentId) {
+      setPost({
+        ...post,
+        comments: post.comments.map((c) =>
+          c.id === parentId
+            ? {
+                ...c,
+                replies: (c.replies ?? []).filter(
+                  (r: Comment) => r.id !== commentId,
+                ),
+              }
+            : c,
+        ),
+      });
+    } else {
+      setPost({
+        ...post,
+        comments: post.comments.filter((c) => c.id !== commentId),
+      });
+    }
+    setDeletingCommentId(null);
+  };
+
+  const totalCommentCount = post.comments.reduce(
+    (acc, c) => acc + 1 + (c.replies?.length ?? 0),
+    0,
+  );
+
+  const renderComment = (
+    comment: Comment,
+    isReply = false,
+    parentId?: string,
+  ) => (
+    <div
+      key={comment.id}
+      className={`flex gap-3 p-4 rounded-lg ${isReply ? "bg-blue-50/50 border border-blue-100" : "bg-gray-50"}`}
+    >
+      {isReply && (
+        <CornerDownRight className="w-4 h-4 text-blue-400 mt-3 shrink-0" />
+      )}
+      <div className="w-9 h-9 bg-linear-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold shrink-0 text-sm">
+        {comment.authorName[0]}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between mb-1.5">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-gray-900 text-sm">
+              {comment.authorName}
+            </span>
+            <span className="text-xs text-gray-400">{comment.createdAt}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            {user?.id === comment.authorId &&
+              (editingCommentId === comment.id ? (
+                <>
+                  <button
+                    onClick={() =>
+                      handleConfirmEdit(comment.id, isReply, parentId)
+                    }
+                    className="p-1.5 hover:bg-green-100 text-green-600 rounded transition-colors cursor-pointer"
+                    title="수정 완료 (Ctrl+Enter)"
+                  >
+                    <Check className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      setEditingCommentId(null);
+                      setEditingContent("");
+                    }}
+                    className="p-1.5 hover:bg-gray-200 text-gray-500 rounded transition-colors cursor-pointer"
+                    title="취소 (Esc)"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => handleStartEdit(comment.id, comment.content)}
+                    className="p-1.5 hover:bg-blue-100 text-blue-500 rounded transition-colors cursor-pointer"
+                    title="수정"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setDeletingCommentId(comment.id)}
+                    className="p-1.5 hover:bg-red-100 text-red-500 rounded transition-colors cursor-pointer"
+                    title="삭제"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </>
+              ))}
+            {!isReply && user && (
+              <button
+                onClick={() => {
+                  setReplyingToId(
+                    replyingToId === comment.id ? null : comment.id,
+                  );
+                  setReplyContent("");
+                }}
+                className="p-1.5 hover:bg-purple-100 text-purple-500 rounded transition-colors cursor-pointer flex items-center gap-1"
+                title="답글"
+              >
+                <CornerDownRight className="w-3.5 h-3.5" />
+                <span className="text-xs">답글</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* 수정 중 / 일반 텍스트 */}
+        {editingCommentId === comment.id ? (
+          <>
+            <textarea
+              value={editingContent}
+              onChange={(e) => setEditingContent(e.target.value)}
+              onKeyDown={(e) =>
+                handleEditKeyDown(e, comment.id, isReply, parentId)
+              }
+              className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none text-sm"
+              rows={3}
+              autoFocus
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              Enter로 저장 · Shift+Enter 줄바꿈 · Esc 취소
+            </p>
+          </>
+        ) : (
+          <p className="text-gray-700 text-sm">{comment.content}</p>
+        )}
+
+        {/* 삭제 확인 인라인 */}
+        {deletingCommentId === comment.id && (
+          <div className="mt-2 flex items-center gap-2 p-2 bg-red-50 rounded-lg border border-red-200">
+            <span className="text-sm text-red-700 flex-1">
+              댓글을 삭제할까요?
+            </span>
+            <button
+              onClick={() => handleConfirmDelete(comment.id, isReply, parentId)}
+              className="px-3 py-1 bg-red-600 text-white text-sm rounded font-medium hover:bg-red-700 transition-colors cursor-pointer"
+            >
+              삭제
+            </button>
+            <button
+              onClick={() => setDeletingCommentId(null)}
+              className="px-3 py-1 bg-gray-200 text-gray-700 text-sm rounded font-medium hover:bg-gray-300 transition-colors cursor-pointer"
+            >
+              취소
+            </button>
+          </div>
+        )}
+
+        {/* 대댓글 작성 폼 */}
+        {!isReply && replyingToId === comment.id && (
+          <div className="mt-3 flex gap-2">
+            <div className="w-8 h-8 bg-linear-to-br from-purple-400 to-blue-400 rounded-full flex items-center justify-center text-white font-bold shrink-0 text-xs">
+              {user?.name[0]}
+            </div>
+            <div className="flex-1">
+              <textarea
+                value={replyContent}
+                onChange={(e) => setReplyContent(e.target.value)}
+                onKeyDown={(e) => handleReplyKeyDown(e, comment.id)}
+                placeholder={`${comment.authorName}님에게 답글 작성...`}
+                className="w-full px-3 py-2 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none resize-none text-sm"
+                rows={2}
+                autoFocus
+              />
+              <div className="flex items-center justify-between mt-1.5">
+                <p className="text-xs text-gray-400">
+                  Enter로 작성 · Shift+Enter 줄바꿈
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleAddReply(comment.id)}
+                    className="px-4 py-1.5 bg-linear-to-r from-purple-600 to-blue-600 text-white rounded-lg text-sm font-bold hover:from-purple-700 hover:to-blue-700 transition-all flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    답글 작성
+                  </button>
+                  <button
+                    onClick={() => {
+                      setReplyingToId(null);
+                      setReplyContent("");
+                    }}
+                    className="px-4 py-1.5 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-300 transition-colors cursor-pointer"
+                  >
+                    취소
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 대댓글 목록 */}
+        {!isReply && (comment.replies ?? []).length > 0 && (
+          <div className="mt-3 space-y-3 pl-2 border-l-2 border-blue-100">
+            {(comment.replies ?? []).map((reply: Comment) =>
+              renderComment(reply, true, comment.id),
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
   return (
     <div className="flex h-full bg-gray-50">
@@ -157,7 +492,7 @@ export default function PostDetailPage({
                 </h1>
                 <div className="flex items-center gap-4 text-sm text-gray-600 mb-6 pb-6 border-b border-gray-200">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                    <div className="w-8 h-8 bg-linear-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
                       {post.authorName[0]}
                     </div>
                     <span className="font-medium">{post.authorName}</span>
@@ -179,7 +514,7 @@ export default function PostDetailPage({
                     className={`flex items-center gap-2 px-6 py-3 rounded-lg font-bold transition-all border cursor-pointer ${
                       liked
                         ? "bg-red-500 text-white border-red-500"
-                        : "bg-gradient-to-r from-pink-50 to-red-50 text-red-600 border-red-200 hover:from-pink-100 hover:to-red-100"
+                        : "bg-linear-to-r from-pink-50 to-red-50 text-red-600 border-red-200 hover:from-pink-100 hover:to-red-100"
                     }`}
                   >
                     <Heart className="w-5 h-5" />
@@ -187,37 +522,44 @@ export default function PostDetailPage({
                   </button>
                   <div className="flex items-center gap-2 text-gray-600">
                     <MessageSquare className="w-5 h-5" />
-                    <span>댓글 {post.comments.length}</span>
+                    <span>댓글 {totalCommentCount}</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* 댓글 */}
+            {/* 댓글 섹션 */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">
-                댓글 {post.comments.length}
+                댓글 {totalCommentCount}
               </h2>
+
               {user ? (
                 <div className="flex gap-3 mb-6">
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0">
+                  <div className="w-10 h-10 bg-linear-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold shrink-0">
                     {user.name[0]}
                   </div>
                   <div className="flex-1">
                     <textarea
                       value={commentContent}
                       onChange={(e) => setCommentContent(e.target.value)}
+                      onKeyDown={handleCommentKeyDown}
                       placeholder="댓글을 작성해보세요..."
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"
                       rows={3}
                     />
-                    <button
-                      onClick={handleAddComment}
-                      className="mt-2 px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-bold hover:from-blue-700 hover:to-purple-700 transition-all flex items-center gap-2 cursor-pointer"
-                    >
-                      <Send className="w-4 h-4" />
-                      댓글 작성
-                    </button>
+                    <div className="flex items-center justify-between mt-2">
+                      <p className="text-xs text-gray-400">
+                        Enter로 작성 · Shift+Enter 줄바꿈
+                      </p>
+                      <button
+                        onClick={handleAddComment}
+                        className="px-6 py-2 bg-linear-to-r from-blue-600 to-purple-600 text-white rounded-lg font-bold hover:from-blue-700 hover:to-purple-700 transition-all flex items-center gap-2 cursor-pointer"
+                      >
+                        <Send className="w-4 h-4" />
+                        댓글 작성
+                      </button>
+                    </div>
                   </div>
                 </div>
               ) : (
@@ -233,33 +575,14 @@ export default function PostDetailPage({
                   </button>
                 </div>
               )}
+
               <div className="space-y-4">
                 {post.comments.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
                     첫 댓글을 작성해보세요!
                   </div>
                 ) : (
-                  post.comments.map((comment) => (
-                    <div
-                      key={comment.id}
-                      className="flex gap-3 p-4 bg-gray-50 rounded-lg"
-                    >
-                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0">
-                        {comment.authorName[0]}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="font-bold text-gray-900">
-                            {comment.authorName}
-                          </span>
-                          <span className="text-sm text-gray-500">
-                            {comment.createdAt}
-                          </span>
-                        </div>
-                        <p className="text-gray-700">{comment.content}</p>
-                      </div>
-                    </div>
-                  ))
+                  post.comments.map((comment) => renderComment(comment))
                 )}
               </div>
             </div>
@@ -268,7 +591,7 @@ export default function PostDetailPage({
         </div>
       </div>
 
-      {/* 삭제 확인 모달 */}
+      {/* 게시글 삭제 모달 */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 max-w-sm w-full">

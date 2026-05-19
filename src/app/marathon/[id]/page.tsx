@@ -1,4 +1,4 @@
-import { getMarathonById } from "@/api/marathons";
+import { getMarathonById } from "@/app/api/marathons";
 import MarathonDetail from "@/components/detail/MarathonDetail";
 import { notFound } from "next/navigation";
 

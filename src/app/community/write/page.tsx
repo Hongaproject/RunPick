@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { ArrowLeft, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { createPost } from "@/api/community";
+import { createPost } from "@/app/api/community";
 import { PostCategory } from "@/types/community";
 
 const categories: PostCategory[] = ["자유", "후기", "질문", "정보"];

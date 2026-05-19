@@ -1,5 +1,13 @@
 "use client";
-import { User, Mail, Heart, MessageSquare, LogOut, Settings, ThumbsUp } from "lucide-react";
+import {
+  User,
+  Mail,
+  Heart,
+  MessageSquare,
+  LogOut,
+  Settings,
+  ThumbsUp,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -43,10 +51,14 @@ export default function MyPage() {
 
   const getProviderName = (provider?: string) => {
     switch (provider) {
-      case "kakao": return "카카오";
-      case "github": return "GitHub";
-      case "google": return "구글";
-      default: return "이메일";
+      case "kakao":
+        return "카카오";
+      case "github":
+        return "GitHub";
+      case "google":
+        return "구글";
+      default:
+        return "이메일";
     }
   };
 
@@ -64,7 +76,9 @@ export default function MyPage() {
                 </div>
               </div>
               <div className="ml-6 pb-2">
-                <h1 className="text-3xl font-black text-gray-900">{user.name}</h1>
+                <h1 className="text-3xl font-black text-gray-900">
+                  {user.name}
+                </h1>
                 <p className="text-gray-600 flex items-center gap-2 mt-1">
                   <Mail className="w-4 h-4" />
                   {user.email}
@@ -81,19 +95,37 @@ export default function MyPage() {
 
             {/* 통계 - 즐겨찾기 / 글 좋아요 / 작성 글 */}
             <div className="grid grid-cols-3 gap-4">
-              <Link href="/favorites" className="bg-gradient-to-br from-pink-50 to-red-100 rounded-xl p-4 text-center border border-red-200 hover:shadow-md transition-all">
-                <Heart className="w-6 h-6 text-red-500 mx-auto mb-1" fill="currentColor" />
-                <div className="text-3xl font-black text-red-500 mb-1">{user.favorites.length}</div>
+              <Link
+                href="/favorites"
+                className="bg-gradient-to-br from-pink-50 to-red-100 rounded-xl p-4 text-center border border-red-200 hover:shadow-md transition-all"
+              >
+                <Heart
+                  className="w-6 h-6 text-red-500 mx-auto mb-1"
+                  fill="currentColor"
+                />
+                <div className="text-3xl font-black text-red-500 mb-1">
+                  {user.favorites.length}
+                </div>
                 <div className="text-sm text-gray-600">즐겨찾기</div>
               </Link>
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 text-center border border-blue-200">
+              <Link
+                href="/liked-posts"
+                className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 text-center border border-blue-200 hover:shadow-md transition-all"
+              >
                 <ThumbsUp className="w-6 h-6 text-blue-600 mx-auto mb-1" />
-                <div className="text-3xl font-black text-blue-600 mb-1">{postLikesCount}</div>
+                <div className="text-3xl font-black text-blue-600 mb-1">
+                  {postLikesCount}
+                </div>
                 <div className="text-sm text-gray-600">글 좋아요</div>
-              </div>
-              <Link href="/community" className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 text-center border border-green-200 hover:shadow-md transition-all">
+              </Link>
+              <Link
+                href="/community"
+                className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 text-center border border-green-200 hover:shadow-md transition-all"
+              >
                 <MessageSquare className="w-6 h-6 text-green-600 mx-auto mb-1" />
-                <div className="text-3xl font-black text-green-600 mb-1">{postCount}</div>
+                <div className="text-3xl font-black text-green-600 mb-1">
+                  {postCount}
+                </div>
                 <div className="text-sm text-gray-600">작성 글</div>
               </Link>
             </div>

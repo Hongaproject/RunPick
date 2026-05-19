@@ -3,7 +3,7 @@ import {
   getMarathons,
   getMarathonById,
   getMarathonsByRegion,
-} from "@/api/marathons";
+} from "@/app/api/marathons";
 
 // 전체 마라톤 목록
 export function useMarathons() {

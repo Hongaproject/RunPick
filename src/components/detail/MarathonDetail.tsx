@@ -113,7 +113,7 @@ export default function MarathonDetail({ marathon }: MarathonDetailProps) {
             </div>
             <div className="bg-white/95 backdrop-blur-md px-6 py-3 rounded-full shadow-lg flex-shrink-0">
               <span className={`text-2xl font-black ${dday.color}`}>
-                대회 시작 {dday.text}
+                {dday.text}
               </span>
             </div>
           </div>

@@ -13,11 +13,12 @@ export type SocialProvider = Extract<Provider, "google" | "github" | "kakao">;
 
 export interface User {
   id: string;
-  name: string;
+  name: string; // 닉네임
   email: string;
   profileImage?: string;
   provider?: "email" | SocialProvider;
   favorites: string[];
+  nicknameUpdatedAt?: string | null;
 }
 
 interface AuthContextType {
@@ -30,6 +31,9 @@ interface AuthContextType {
   logout: () => Promise<void>;
   toggleFavorite: (marathonId: string) => Promise<void>;
   isFavorite: (marathonId: string) => boolean;
+  updateNickname: (nickname: string) => Promise<void>;
+  canChangeNickname: () => boolean;
+  daysUntilNicknameChange: () => number;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -39,7 +43,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 즐겨찾기 목록 Supabase에서 로드
   const loadFavorites = async (userId: string): Promise<string[]> => {
     const { data } = await supabase
       .from("user_favorites")
@@ -48,27 +51,62 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return data?.map((row) => row.marathon_id) ?? [];
   };
 
+  // profiles 테이블에서 닉네임 로드 (없으면 자동 생성)
+  const loadOrCreateProfile = async (
+    userId: string,
+    fallbackName: string,
+  ): Promise<{ nickname: string; nicknameUpdatedAt: string | null }> => {
+    const { data } = await supabase
+      .from("profiles")
+      .select("nickname, nickname_updated_at")
+      .eq("id", userId)
+      .single();
+
+    if (data) {
+      return {
+        nickname: data.nickname,
+        nicknameUpdatedAt: data.nickname_updated_at,
+      };
+    }
+
+    // 프로필 없으면 생성
+    await supabase.from("profiles").insert({
+      id: userId,
+      nickname: fallbackName,
+    });
+    return { nickname: fallbackName, nicknameUpdatedAt: null };
+  };
+
   const formatUser = async (supabaseSession: Session): Promise<User> => {
-    const favorites = await loadFavorites(supabaseSession.user.id);
+    const fallbackName =
+      supabaseSession.user.user_metadata?.full_name ||
+      supabaseSession.user.user_metadata?.name ||
+      supabaseSession.user.email?.split("@")[0] ||
+      "러너";
+
+    const [favorites, profile] = await Promise.all([
+      loadFavorites(supabaseSession.user.id),
+      loadOrCreateProfile(supabaseSession.user.id, fallbackName),
+    ]);
+
     return {
       id: supabaseSession.user.id,
-      name:
-        supabaseSession.user.user_metadata?.full_name ||
-        supabaseSession.user.user_metadata?.name ||
-        supabaseSession.user.email?.split("@")[0] ||
-        "사용자",
+      name: profile.nickname,
       email: supabaseSession.user.email ?? "",
       profileImage: supabaseSession.user.user_metadata?.avatar_url,
       provider:
         (supabaseSession.user.app_metadata?.provider as User["provider"]) ||
         "email",
       favorites,
+      nicknameUpdatedAt: profile.nicknameUpdatedAt,
     };
   };
 
   useEffect(() => {
     const initSession = async () => {
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      const {
+        data: { session: currentSession },
+      } = await supabase.auth.getSession();
       if (currentSession) {
         setSession(currentSession);
         setUser(await formatUser(currentSession));
@@ -78,7 +116,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     initSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
       if (newSession) {
         setSession(newSession);
         setUser(await formatUser(newSession));
@@ -92,7 +132,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
     if (error) throw new Error(error.message);
   };
 
@@ -120,16 +163,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const toggleFavorite = async (marathonId: string) => {
     if (!user) return;
-
     const isFav = user.favorites.includes(marathonId);
-
     if (isFav) {
       await supabase
         .from("user_favorites")
         .delete()
         .eq("user_id", user.id)
         .eq("marathon_id", marathonId);
-      setUser({ ...user, favorites: user.favorites.filter((id) => id !== marathonId) });
+      setUser({
+        ...user,
+        favorites: user.favorites.filter((id) => id !== marathonId),
+      });
     } else {
       await supabase
         .from("user_favorites")
@@ -138,8 +182,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const isFavorite = (marathonId: string) => {
-    return user?.favorites.includes(marathonId) ?? false;
+  const isFavorite = (marathonId: string) =>
+    user?.favorites.includes(marathonId) ?? false;
+
+  // 닉네임 변경 가능 여부 (30일 제한)
+  const canChangeNickname = (): boolean => {
+    if (!user?.nicknameUpdatedAt) return true;
+    const lastChanged = new Date(user.nicknameUpdatedAt);
+    const daysSince =
+      (Date.now() - lastChanged.getTime()) / (1000 * 60 * 60 * 24);
+    return daysSince >= 30;
+  };
+
+  // 다음 변경까지 남은 일수
+  const daysUntilNicknameChange = (): number => {
+    if (!user?.nicknameUpdatedAt) return 0;
+    const lastChanged = new Date(user.nicknameUpdatedAt);
+    const daysSince =
+      (Date.now() - lastChanged.getTime()) / (1000 * 60 * 60 * 24);
+    return Math.max(0, Math.ceil(30 - daysSince));
+  };
+
+  // 닉네임 변경
+  const updateNickname = async (nickname: string) => {
+    if (!user) return;
+    if (!canChangeNickname())
+      throw new Error("닉네임은 30일에 한 번만 변경할 수 있습니다.");
+
+    const now = new Date().toISOString();
+    const { error } = await supabase
+      .from("profiles")
+      .update({ nickname, nickname_updated_at: now })
+      .eq("id", user.id);
+
+    if (error) throw new Error(error.message);
+    setUser({ ...user, name: nickname, nicknameUpdatedAt: now });
   };
 
   return (
@@ -154,6 +231,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         toggleFavorite,
         isFavorite,
+        updateNickname,
+        canChangeNickname,
+        daysUntilNicknameChange,
       }}
     >
       {children}

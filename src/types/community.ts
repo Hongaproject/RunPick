@@ -22,4 +22,6 @@ export interface Comment {
   authorName: string;
   content: string;
   createdAt: string;
+  parentId?: string | null;
+  replies?: Comment[];
 }
