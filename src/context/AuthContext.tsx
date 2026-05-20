@@ -18,6 +18,7 @@ export interface User {
   profileImage?: string;
   provider?: "email" | SocialProvider;
   favorites: string[];
+  nicknameUpdatedAt?: string;
 }
 
 interface AuthContextType {
@@ -30,6 +31,9 @@ interface AuthContextType {
   logout: () => Promise<void>;
   toggleFavorite: (marathonId: string) => void;
   isFavorite: (marathonId: string) => boolean;
+  updateNickname: (newNickname: string) => Promise<void>;
+  canChangeNickname: () => boolean;
+  daysUntilNicknameChange: () => number;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -52,6 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       (supabaseSession.user.app_metadata?.provider as User["provider"]) ||
       "email",
     favorites: [],
+    nicknameUpdatedAt: supabaseSession.user.user_metadata?.nickname_updated_at,
   });
 
   useEffect(() => {
@@ -144,6 +149,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return user?.favorites.includes(marathonId) ?? false;
   };
 
+  // 💡 [추가] 닉네임 업데이트 함수 구현 (Supabase Auth Metadata 활용)
+  const updateNickname = async (newNickname: string) => {
+    if (!user) throw new Error("로그인이 필요합니다.");
+
+    const now = new Date().toISOString();
+
+    const { data, error } = await supabase.auth.updateUser({
+      data: {
+        full_name: newNickname,
+        nickname_updated_at: now,
+      },
+    });
+
+    if (error) throw new Error(error.message);
+
+    // Context 상태 앱에 즉시 반영
+    if (data?.user) {
+      setUser({
+        ...user,
+        name: newNickname,
+        nicknameUpdatedAt: now,
+      });
+    }
+  };
+
+  // 💡 [추가] 변경 가능 여부 체크 (30일 제한 익스파이어 계산)
+  const canChangeNickname = () => {
+    if (!user?.nicknameUpdatedAt) return true;
+
+    const lastUpdate = new Date(user.nicknameUpdatedAt).getTime();
+    const now = new Date().getTime();
+    const daysDiff = (now - lastUpdate) / (1000 * 60 * 60 * 24);
+
+    return daysDiff >= 30;
+  };
+
+  // 💡 [추가] 남은 일수 계산 함수
+  const daysUntilNicknameChange = () => {
+    if (!user?.nicknameUpdatedAt) return 0;
+
+    const lastUpdate = new Date(user.nicknameUpdatedAt).getTime();
+    const now = new Date().getTime();
+    const daysDiff = (now - lastUpdate) / (1000 * 60 * 60 * 24);
+    const remaining = Math.ceil(30 - daysDiff);
+
+    return remaining > 0 ? remaining : 0;
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -156,6 +209,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         toggleFavorite,
         isFavorite,
+        updateNickname,
+        canChangeNickname,
+        daysUntilNicknameChange,
       }}
     >
       {children}
