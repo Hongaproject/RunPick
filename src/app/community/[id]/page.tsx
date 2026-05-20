@@ -23,7 +23,7 @@ import {
   deletePost,
   updateComment,
   deleteComment,
-} from "@/app/api/community";
+} from "@/api/community";
 import { Post, Comment, PostCategory } from "@/types/community";
 import { Footer } from "@/components/common/Footer";
 

@@ -13,7 +13,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { getPosts } from "@/app/api/community";
+import { getPosts } from "@/api/community";
 import { Post, PostCategory } from "@/types/community";
 import { Footer } from "@/components/common/Footer";
 

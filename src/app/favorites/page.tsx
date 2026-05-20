@@ -5,7 +5,7 @@ import { Heart } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { getMarathons } from "@/app/api/marathons";
+import { getMarathons } from "@/api/marathons";
 import { MarathonRace } from "@/types/marathon";
 import { MarathonCard } from "@/components/home/MarathonCard";
 import { Footer } from "@/components/common/Footer";

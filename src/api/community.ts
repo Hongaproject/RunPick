@@ -40,7 +40,21 @@ function buildCommentTree(comments: Comment[]): Comment[] {
   return roots;
 }
 
-// 전체 게시글 조회
+// profiles 닉네임 일괄 조회 (author_id 목록 → 닉네임 맵)
+async function getNicknameMap(
+  authorIds: string[],
+): Promise<Map<string, string>> {
+  if (authorIds.length === 0) return new Map();
+  const { data } = await supabase
+    .from("profiles")
+    .select("id, nickname")
+    .in("id", authorIds);
+  const map = new Map<string, string>();
+  data?.forEach((p) => map.set(p.id, p.nickname));
+  return map;
+}
+
+// 전체 게시글 조회 (닉네임 최신 반영)
 export async function getPosts(): Promise<Post[]> {
   const { data, error } = await supabase
     .from("posts")
@@ -49,24 +63,40 @@ export async function getPosts(): Promise<Post[]> {
 
   if (error) throw new Error(error.message);
 
+  // 작성자 + 댓글 작성자 전체 id 수집
+  const authorIds = [
+    ...new Set([
+      ...data.map((row) => row.author_id),
+      ...data.flatMap((row) =>
+        (row.comments ?? []).map((c: Record<string, string>) => c.author_id),
+      ),
+    ]),
+  ];
+
+  const nicknameMap = await getNicknameMap(authorIds);
+
   return data.map((row) => ({
     id: row.id,
     title: row.title,
     content: row.content,
     category: row.category as PostCategory,
     authorId: row.author_id,
-    authorName: row.author_name,
+    authorName: nicknameMap.get(row.author_id) ?? row.author_name,
     views: row.views,
     likes: row.likes,
     createdAt: formatDate(row.created_at),
     updatedAt: formatDate(row.updated_at),
-    comments: buildCommentTree((row.comments ?? []).map(mapComment)),
+    comments: buildCommentTree(
+      (row.comments ?? []).map((c: Record<string, string>) => ({
+        ...mapComment(c),
+        authorName: nicknameMap.get(c.author_id) ?? c.author_name,
+      })),
+    ),
   }));
 }
 
-// 단일 게시글 조회 + 조회수 증가
+// 단일 게시글 조회 + 조회수 증가 (닉네임 최신 반영)
 export async function getPostById(id: string): Promise<Post | null> {
-  // 조회수 증가
   await supabase.rpc("increment_views", { post_id: id });
 
   const { data, error } = await supabase
@@ -77,18 +107,32 @@ export async function getPostById(id: string): Promise<Post | null> {
 
   if (error) return null;
 
+  const authorIds = [
+    ...new Set([
+      data.author_id,
+      ...(data.comments ?? []).map((c: Record<string, string>) => c.author_id),
+    ]),
+  ];
+
+  const nicknameMap = await getNicknameMap(authorIds);
+
   return {
     id: data.id,
     title: data.title,
     content: data.content,
     category: data.category as PostCategory,
     authorId: data.author_id,
-    authorName: data.author_name,
+    authorName: nicknameMap.get(data.author_id) ?? data.author_name,
     views: data.views,
     likes: data.likes,
     createdAt: formatDate(data.created_at),
     updatedAt: formatDate(data.updated_at),
-    comments: buildCommentTree((data.comments ?? []).map(mapComment)),
+    comments: buildCommentTree(
+      (data.comments ?? []).map((c: Record<string, string>) => ({
+        ...mapComment(c),
+        authorName: nicknameMap.get(c.author_id) ?? c.author_name,
+      })),
+    ),
   };
 }
 
@@ -140,7 +184,6 @@ export async function updatePost(
     .from("posts")
     .update({ title, content, category, updated_at: new Date().toISOString() })
     .eq("id", id);
-
   if (error) throw new Error(error.message);
 }
 
@@ -172,11 +215,18 @@ export async function createComment(
 
   if (error) throw new Error(error.message);
 
+  // 현재 닉네임으로 반환
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("nickname")
+    .eq("id", authorId)
+    .single();
+
   return {
     id: data.id,
     postId: data.post_id,
     authorId: data.author_id,
-    authorName: data.author_name,
+    authorName: profile?.nickname ?? authorName,
     content: data.content,
     createdAt: formatDate(data.created_at),
     parentId: data.parent_id ?? null,
