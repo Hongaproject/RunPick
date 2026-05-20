@@ -142,7 +142,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loginWithProvider = async (provider: SocialProvider) => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo: `${window.location.origin}/` },
     });
     if (error) throw new Error(error.message);
   };
