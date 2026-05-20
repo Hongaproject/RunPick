@@ -73,7 +73,7 @@ export default function CommunityPage() {
               </div>
               <button
                 onClick={handleWritePost}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg font-bold hover:from-blue-700 hover:to-purple-700 transition-all flex items-center gap-2"
+                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg font-bold hover:from-blue-700 hover:to-purple-700 transition-all flex items-center gap-2 cursor-pointer"
               >
                 <Plus className="w-5 h-5" />
                 글쓰기
@@ -98,7 +98,7 @@ export default function CommunityPage() {
                 <button
                   key={category}
                   onClick={() => setSelectedCategory(category)}
-                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                  className={`px-4 py-2 rounded-lg font-medium transition-all cursor-pointer ${
                     selectedCategory === category
                       ? "bg-blue-600 text-white"
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"

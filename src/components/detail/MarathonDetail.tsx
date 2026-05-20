@@ -19,6 +19,7 @@ import {
 import { MarathonRace } from "@/types/marathon";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
+import { Footer } from "../common/Footer";
 
 const KakaoMap = dynamic(() => import("./KakaoMap"), { ssr: false });
 
@@ -376,6 +377,7 @@ export default function MarathonDetail({ marathon }: MarathonDetailProps) {
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }
