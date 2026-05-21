@@ -5,7 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 // 서비스 키로 RLS 우회 (서버에서만 사용)
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY!,
 );
 
 const transporter = nodemailer.createTransport({
@@ -42,7 +42,8 @@ export async function POST(req: NextRequest) {
   // 접수 마감 3일 전 대회 즐겨찾기한 유저 조회
   const { data: registrationAlerts } = await supabase
     .from("user_favorites")
-    .select(`
+    .select(
+      `
       user_id,
       marathon_id,
       marathons!inner (
@@ -51,13 +52,15 @@ export async function POST(req: NextRequest) {
         homepage_url,
         place
       )
-    `)
+    `,
+    )
     .eq("marathons.application_end_date", format(registrationDeadline));
 
   // 대회 시작 7일 전 즐겨찾기한 유저 조회
   const { data: raceAlerts } = await supabase
     .from("user_favorites")
-    .select(`
+    .select(
+      `
       user_id,
       marathon_id,
       marathons!inner (
@@ -66,7 +69,8 @@ export async function POST(req: NextRequest) {
         homepage_url,
         place
       )
-    `)
+    `,
+    )
     .eq("marathons.race_date", format(raceStartSoon));
 
   // 유저 이메일 조회용 맵
