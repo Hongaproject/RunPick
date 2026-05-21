@@ -1,0 +1,17 @@
+name: 즐겨찾기 알림 발송
+
+on:
+  schedule:
+    # 매일 오전 9시 (KST = UTC+9, 즉 UTC 00:00)
+    - cron: '0 0 * * *'
+  workflow_dispatch: # 수동 실행 가능
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 알림 API 호출
+        run: |
+          curl -X POST "${{ secrets.NEXT_PUBLIC_APP_URL }}/api/notify" \
+            -H "Authorization: Bearer ${{ secrets.NOTIFY_SECRET }}" \
+            -H "Content-Type: application/json"

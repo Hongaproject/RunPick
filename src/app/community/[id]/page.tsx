@@ -25,6 +25,7 @@ import {
   deleteComment,
 } from "@/api/community";
 import { Post, Comment, PostCategory } from "@/types/community";
+import { supabase } from "@/lib/supabase";
 import { Footer } from "@/components/common/Footer";
 
 const categoryColors: Record<PostCategory, string> = {
@@ -48,6 +49,7 @@ export default function PostDetailPage({
   const [liked, setLiked] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const viewedRef = useRef(false);
+  const trackedViewRef = useRef(false); // 조회수 중복 방지
 
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState("");
@@ -69,6 +71,14 @@ export default function PostDetailPage({
       setIsLoading(false);
     });
   }, [id, router]);
+
+  // post_views 기반 조회수 처리 — useRef로 setState 없이 1회만 실행
+  useEffect(() => {
+    if (trackedViewRef.current) return;
+    if (isLoading) return;
+    trackedViewRef.current = true;
+    supabase.rpc("increment_views", { post_id: id });
+  }, [id, isLoading]);
 
   useEffect(() => {
     if (user && id) checkLiked(id, user.id).then(setLiked);

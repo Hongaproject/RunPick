@@ -9,8 +9,7 @@ function formatDate(dateStr: string) {
   });
 }
 
-// raw row → Comment 변환
-function mapComment(c: Record<string, string>): Comment {
+function formatComment(c: Record<string, string>): Comment {
   return {
     id: c.id,
     postId: c.post_id,
@@ -19,42 +18,35 @@ function mapComment(c: Record<string, string>): Comment {
     content: c.content,
     createdAt: formatDate(c.created_at),
     parentId: c.parent_id ?? null,
-    replies: [],
   };
 }
 
-// 댓글 → 계층 구조 (부모 → 대댓글)
+// 댓글 flat 배열 → 트리 구조로 변환
 function buildCommentTree(comments: Comment[]): Comment[] {
   const map = new Map<string, Comment>();
   const roots: Comment[] = [];
 
-  comments.forEach((c) => map.set(c.id, { ...c, replies: [] }));
+  comments.forEach((c) => {
+    map.set(c.id, { ...c, replies: [] });
+  });
+
   map.forEach((c) => {
     if (c.parentId) {
       const parent = map.get(c.parentId);
-      if (parent) parent.replies = [...(parent.replies ?? []), c];
+      if (parent) {
+        parent.replies = [...(parent.replies ?? []), c];
+      } else {
+        roots.push(c);
+      }
     } else {
       roots.push(c);
     }
   });
+
   return roots;
 }
 
-// profiles 닉네임 일괄 조회 (author_id 목록 → 닉네임 맵)
-async function getNicknameMap(
-  authorIds: string[],
-): Promise<Map<string, string>> {
-  if (authorIds.length === 0) return new Map();
-  const { data } = await supabase
-    .from("profiles")
-    .select("id, nickname")
-    .in("id", authorIds);
-  const map = new Map<string, string>();
-  data?.forEach((p) => map.set(p.id, p.nickname));
-  return map;
-}
-
-// 전체 게시글 조회 (닉네임 최신 반영)
+// 전체 게시글 조회
 export async function getPosts(): Promise<Post[]> {
   const { data, error } = await supabase
     .from("posts")
@@ -63,42 +55,23 @@ export async function getPosts(): Promise<Post[]> {
 
   if (error) throw new Error(error.message);
 
-  // 작성자 + 댓글 작성자 전체 id 수집
-  const authorIds = [
-    ...new Set([
-      ...data.map((row) => row.author_id),
-      ...data.flatMap((row) =>
-        (row.comments ?? []).map((c: Record<string, string>) => c.author_id),
-      ),
-    ]),
-  ];
-
-  const nicknameMap = await getNicknameMap(authorIds);
-
   return data.map((row) => ({
     id: row.id,
     title: row.title,
     content: row.content,
     category: row.category as PostCategory,
     authorId: row.author_id,
-    authorName: nicknameMap.get(row.author_id) ?? row.author_name,
+    authorName: row.author_name,
     views: row.views,
     likes: row.likes,
     createdAt: formatDate(row.created_at),
     updatedAt: formatDate(row.updated_at),
-    comments: buildCommentTree(
-      (row.comments ?? []).map((c: Record<string, string>) => ({
-        ...mapComment(c),
-        authorName: nicknameMap.get(c.author_id) ?? c.author_name,
-      })),
-    ),
+    comments: buildCommentTree((row.comments ?? []).map(formatComment)),
   }));
 }
 
-// 단일 게시글 조회 + 조회수 증가 (닉네임 최신 반영)
+// 단일 게시글 조회
 export async function getPostById(id: string): Promise<Post | null> {
-  await supabase.rpc("increment_views", { post_id: id });
-
   const { data, error } = await supabase
     .from("posts")
     .select(`*, comments(*)`)
@@ -107,32 +80,18 @@ export async function getPostById(id: string): Promise<Post | null> {
 
   if (error) return null;
 
-  const authorIds = [
-    ...new Set([
-      data.author_id,
-      ...(data.comments ?? []).map((c: Record<string, string>) => c.author_id),
-    ]),
-  ];
-
-  const nicknameMap = await getNicknameMap(authorIds);
-
   return {
     id: data.id,
     title: data.title,
     content: data.content,
     category: data.category as PostCategory,
     authorId: data.author_id,
-    authorName: nicknameMap.get(data.author_id) ?? data.author_name,
+    authorName: data.author_name,
     views: data.views,
     likes: data.likes,
     createdAt: formatDate(data.created_at),
     updatedAt: formatDate(data.updated_at),
-    comments: buildCommentTree(
-      (data.comments ?? []).map((c: Record<string, string>) => ({
-        ...mapComment(c),
-        authorName: nicknameMap.get(c.author_id) ?? c.author_name,
-      })),
-    ),
+    comments: buildCommentTree((data.comments ?? []).map(formatComment)),
   };
 }
 
@@ -184,6 +143,7 @@ export async function updatePost(
     .from("posts")
     .update({ title, content, category, updated_at: new Date().toISOString() })
     .eq("id", id);
+
   if (error) throw new Error(error.message);
 }
 
@@ -199,7 +159,7 @@ export async function createComment(
   content: string,
   authorId: string,
   authorName: string,
-  parentId?: string | null,
+  parentId?: string,
 ): Promise<Comment> {
   const { data, error } = await supabase
     .from("comments")
@@ -208,30 +168,46 @@ export async function createComment(
       content,
       author_id: authorId,
       author_name: authorName,
-      parent_id: parentId ?? null,
+      ...(parentId ? { parent_id: parentId } : {}),
     })
     .select()
     .single();
 
   if (error) throw new Error(error.message);
 
-  // 현재 닉네임으로 반환
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("nickname")
-    .eq("id", authorId)
-    .single();
-
   return {
     id: data.id,
     postId: data.post_id,
     authorId: data.author_id,
-    authorName: profile?.nickname ?? authorName,
+    authorName: data.author_name,
     content: data.content,
     createdAt: formatDate(data.created_at),
     parentId: data.parent_id ?? null,
     replies: [],
   };
+}
+
+// 댓글 수정
+export async function updateComment(
+  commentId: string,
+  content: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from("comments")
+    .update({ content })
+    .eq("id", commentId);
+
+  if (error) throw new Error(error.message);
+}
+
+// 댓글 삭제
+export async function deleteComment(commentId: string): Promise<void> {
+  const { error } = await supabase
+    .from("comments")
+    .delete()
+    .eq("id", commentId);
+
+  if (error) throw new Error(error.message);
 }
 
 // 좋아요 토글
@@ -280,25 +256,4 @@ export async function checkLiked(
     .eq("user_id", userId)
     .single();
   return !!data;
-}
-
-// 댓글 수정
-export async function updateComment(
-  commentId: string,
-  content: string,
-): Promise<void> {
-  const { error } = await supabase
-    .from("comments")
-    .update({ content })
-    .eq("id", commentId);
-  if (error) throw new Error(error.message);
-}
-
-// 댓글 삭제
-export async function deleteComment(commentId: string): Promise<void> {
-  const { error } = await supabase
-    .from("comments")
-    .delete()
-    .eq("id", commentId);
-  if (error) throw new Error(error.message);
 }

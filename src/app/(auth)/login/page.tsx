@@ -109,7 +109,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg font-bold hover:from-blue-700 hover:to-purple-700 transition-all disabled:opacity-50"
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg font-bold hover:from-blue-700 hover:to-purple-700 transition-all disabled:opacity-50 cursor-pointer"
             >
               {isLoading ? "로그인 중..." : "로그인"}
             </button>
@@ -130,7 +130,7 @@ export default function LoginPage() {
             <button
               onClick={() => handleSocialLogin("kakao")}
               disabled={isLoading}
-              className="w-full bg-[#FEE500] text-[#000000] py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-[#FDD835] transition-colors disabled:opacity-50"
+              className="w-full bg-[#FEE500] text-[#000000] py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-[#FDD835] transition-colors disabled:opacity-50 cursor-pointer"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.9 5.3 4.7 6.7-.2.8-.6 2.8-.7 3.2 0 .2 0 .3.2.4.1.1.3.1.4 0 .5-.3 3.7-2.4 4.3-2.8.4.1.8.1 1.1.1 5.5 0 10-3.6 10-8S17.5 3 12 3z" />
@@ -141,7 +141,7 @@ export default function LoginPage() {
             <button
               onClick={() => handleSocialLogin("google")}
               disabled={isLoading}
-              className="w-full bg-white border-2 border-gray-300 text-gray-700 py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors disabled:opacity-50"
+              className="w-full bg-white border-2 border-gray-300 text-gray-700 py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors disabled:opacity-50 cursor-pointer"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path
@@ -167,7 +167,7 @@ export default function LoginPage() {
             <button
               onClick={() => handleSocialLogin("github")}
               disabled={isLoading}
-              className="w-full bg-[#24292e] text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-[#1a1e22] transition-colors disabled:opacity-50"
+              className="w-full bg-[#24292e] text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-[#1a1e22] transition-colors disabled:opacity-50 cursor-pointer"
             >
               <Github className="w-5 h-5" />
               GitHub로 시작하기
