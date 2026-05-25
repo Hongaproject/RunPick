@@ -36,7 +36,7 @@ export default function FavoritesPage() {
   );
 
   return (
-    <div className="flex h-full bg-gray-50">
+    <div className="flex min-h-full bg-gray-50">
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* 헤더 */}
         <div className="bg-white border-b border-gray-200 shadow-sm">

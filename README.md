@@ -2,7 +2,7 @@
 
 > 전국의 마라톤 대회 정보를 한눈에 확인하고, 즐겨찾기와 커뮤니티 기능으로 러너들과 함께하세요.
 
-## 🔗 **배포 주소**: https://runpick.vercel.app
+## 🔗 **배포 주소**: https://run-pick-psi.vercel.app/
 
 ---
 
@@ -54,7 +54,7 @@ src/
 │   ├── community.ts      # 커뮤니티 CRUD
 │   └── marathons.ts      # 마라톤 데이터
 ├── app/                  # Next.js App Router
-│   ├── (auth)/           # 인증 페이지 (Header 없음)
+│   ├── (auth)/           # 로그인/회원가입
 │   │   ├── login/
 │   │   └── signup/
 │   ├── community/        # 커뮤니티
