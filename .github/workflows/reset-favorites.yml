@@ -1,0 +1,17 @@
+name: 즐겨찾기 연간 초기화
+
+on:
+  schedule:
+    # 매년 1월 1일 00:00 UTC = KST 09:00
+    - cron: '0 0 1 1 *'
+  workflow_dispatch: # 수동 실행 가능
+
+jobs:
+  reset:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 즐겨찾기 초기화 API 호출
+        run: |
+          curl -X POST "${{ secrets.NEXT_PUBLIC_APP_URL }}/api/reset-favorites" \
+            -H "Authorization: Bearer ${{ secrets.NOTIFY_SECRET }}" \
+            -H "Content-Type: application/json"
