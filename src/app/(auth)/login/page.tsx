@@ -1,17 +1,30 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Mail, Lock, Github, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import type { SocialProvider } from "@/context/AuthContext";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [isInAppBrowser, setIsInAppBrowser] = useState(false);
   const { login, loginWithProvider } = useAuth();
   const router = useRouter();
+
+  useEffect(() => {
+    const ua = navigator.userAgent.toLowerCase();
+    const isInApp =
+      ua.includes("kakaotalk") ||
+      ua.includes("instagram") ||
+      ua.includes("fban") ||
+      ua.includes("fbav") ||
+      ua.includes("naver");
+    if (isInApp) setIsInAppBrowser(true);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,7 +34,6 @@ export default function LoginPage() {
       await login(email, password);
       router.push("/");
     } catch (error: unknown) {
-      // Supabase 에러 메시지 한국어 변환
       const msg = error instanceof Error ? error.message : "";
       if (msg.includes("Invalid login credentials")) {
         setErrorMsg("이메일 또는 비밀번호가 올바르지 않습니다.");
@@ -35,12 +47,11 @@ export default function LoginPage() {
     }
   };
 
-  const handleSocialLogin = async (provider: "kakao" | "github" | "google") => {
+  const handleSocialLogin = async (provider: SocialProvider) => {
     setIsLoading(true);
     setErrorMsg("");
     try {
       await loginWithProvider(provider);
-      // OAuth는 리다이렉트 방식이라 router.push 불필요
     } catch {
       setErrorMsg("소셜 로그인에 실패했습니다. 다시 시도해주세요.");
       setIsLoading(false);
@@ -50,19 +61,27 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* 로고 */}
         <div className="text-center mb-8">
-          <Link href="/">
-            <h1 className="text-4xl font-black text-gray-900 mb-2">RunPick</h1>
-          </Link>
+          <h1 className="text-4xl font-black text-gray-900 mb-2">RunPick</h1>
           <p className="text-gray-600">마라톤 대회 정보 플랫폼</p>
         </div>
 
-        {/* 로그인 카드 */}
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">로그인</h2>
 
-          {/* 에러 메시지 */}
+          {/* 인앱 브라우저 안내 배너 */}
+          {isInAppBrowser && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-3 mb-4 text-sm text-yellow-800">
+              📱 카카오톡·인스타그램 등 앱 내 브라우저에서는 소셜 로그인이
+              제한될 수 있어요.
+              <br />
+              <span className="font-bold">
+                우측 상단 메뉴 → 다른 브라우저로 열기
+              </span>
+              를 이용해주세요.
+            </div>
+          )}
+
           {errorMsg && (
             <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 mb-4 text-sm">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -70,7 +89,6 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* 이메일 로그인 폼 */}
           <form onSubmit={handleSubmit} className="space-y-4 mb-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -109,13 +127,12 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg font-bold hover:from-blue-700 hover:to-purple-700 transition-all disabled:opacity-50 cursor-pointer"
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg font-bold hover:from-blue-700 hover:to-purple-700 transition-all disabled:opacity-50"
             >
               {isLoading ? "로그인 중..." : "로그인"}
             </button>
           </form>
 
-          {/* 구분선 */}
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-300" />
@@ -125,12 +142,12 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* 소셜 로그인 */}
+          {/* 소셜 로그인 — kakao, google, github만 (naver 제외) */}
           <div className="space-y-3">
             <button
               onClick={() => handleSocialLogin("kakao")}
               disabled={isLoading}
-              className="w-full bg-[#FEE500] text-[#000000] py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-[#FDD835] transition-colors disabled:opacity-50 cursor-pointer"
+              className="w-full bg-[#FEE500] text-[#000000] py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-[#FDD835] transition-colors disabled:opacity-50"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.9 5.3 4.7 6.7-.2.8-.6 2.8-.7 3.2 0 .2 0 .3.2.4.1.1.3.1.4 0 .5-.3 3.7-2.4 4.3-2.8.4.1.8.1 1.1.1 5.5 0 10-3.6 10-8S17.5 3 12 3z" />
@@ -141,7 +158,7 @@ export default function LoginPage() {
             <button
               onClick={() => handleSocialLogin("google")}
               disabled={isLoading}
-              className="w-full bg-white border-2 border-gray-300 text-gray-700 py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors disabled:opacity-50 cursor-pointer"
+              className="w-full bg-white border-2 border-gray-300 text-gray-700 py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors disabled:opacity-50"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path
@@ -167,14 +184,13 @@ export default function LoginPage() {
             <button
               onClick={() => handleSocialLogin("github")}
               disabled={isLoading}
-              className="w-full bg-[#24292e] text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-[#1a1e22] transition-colors disabled:opacity-50 cursor-pointer"
+              className="w-full bg-[#24292e] text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-[#1a1e22] transition-colors disabled:opacity-50"
             >
               <Github className="w-5 h-5" />
               GitHub로 시작하기
             </button>
           </div>
 
-          {/* 회원가입 링크 */}
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
               계정이 없으신가요?{" "}
@@ -186,6 +202,15 @@ export default function LoginPage() {
               </Link>
             </p>
           </div>
+        </div>
+
+        <div className="mt-6 text-center">
+          <Link
+            href="/"
+            className="text-gray-600 hover:text-gray-900 font-medium"
+          >
+            홈으로 돌아가기
+          </Link>
         </div>
       </div>
     </div>
